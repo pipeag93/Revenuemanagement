@@ -1,7 +1,5 @@
 import os
 import re
-from google import genai
-from google.genai import types
 
 OMNI_SYSTEM_PROMPT = """You are OMNI-REVENUE ARCHITECT, a Senior Revenue Management Specialist & Data Scientist with 15+ years of experience across luxury hotel chains (Marriott, Four Seasons) and large-scale Short-Term Rental portfolios (Airbnb, Vrbo, Booking.com). You think like a CFO, act like a Revenue Manager, and analyze like a Data Scientist.
 
@@ -241,6 +239,9 @@ def parse_sections(raw: str) -> dict:
 
 
 def generate_omni_analysis(data: dict) -> dict:
+    from google import genai
+    from google.genai import types
+
     api_key = os.environ.get('GEMINI_API_KEY', '')
     if not api_key:
         raise ValueError("GEMINI_API_KEY not configurado en variables de entorno.")
