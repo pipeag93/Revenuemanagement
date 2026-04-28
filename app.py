@@ -13,7 +13,11 @@ csrf = CSRFProtect()
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY']                  = os.environ.get('SECRET_KEY', 'omni-revenue-change-me')
-    app.config['SQLALCHEMY_DATABASE_URI']     = os.environ.get('DATABASE_URL', 'sqlite:///omni.db')
+    db_url = os.environ.get('DATABASE_URL', 'sqlite:////tmp/omni.db')
+    # Railway PostgreSQL URLs start with postgres:// but SQLAlchemy needs postgresql://
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['WTF_CSRF_ENABLED']            = True
     app.config['GEMINI_API_KEY']              = os.environ.get('GEMINI_API_KEY', '')
