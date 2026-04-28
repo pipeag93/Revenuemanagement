@@ -1,0 +1,221 @@
+{% extends "revenue_pro/base.html" %}
+{% block title %}Análisis OMNI — {{ prop.name or 'Propiedad' }}{% endblock %}
+
+{% block topbar_center %}
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;">
+  <span style="color:var(--cream);font-weight:600;">{{ prop.name or 'Sin nombre' }}</span>
+  <span style="color:var(--dim);">·</span>
+  <span style="color:var(--muted);">{{ prop.property_type|title }}</span>
+  {% if prop.city %}
+  <span style="color:var(--dim);">·</span>
+  <span style="color:var(--muted);">{{ prop.city }}</span>
+  {% endif %}
+  <span style="color:var(--dim);">·</span>
+  <span style="color:var(--gold);font-weight:600;">{{ prop.currency }}</span>
+  <span style="color:var(--dim);">·</span>
+  <span style="color:var(--muted);">{{ prop.total_rooms }} hab</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:960px;margin:0 auto;padding:24px;">
+
+  <!-- Action bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap;">
+      <a href="{{ url_for('revenue_pro.portfolio') }}"
+         style="color:var(--muted);text-decoration:none;">← Portafolio</a>
+      {% if analysis %}
+      <span style="color:var(--dim);">·</span>
+      <span style="color:var(--dim);">Último análisis: {{ analysis.created_at.strftime('%d %b %Y %H:%M') }}</span>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}"
+         class="btn-ghost" style="text-decoration:none;font-size:11px;">Editar perfil</a>
+      <button id="analyze-btn" onclick="runAnalysis()" class="btn-gold">
+        <span id="btn-icon">✦</span>
+        <span id="btn-text">{% if analysis %}Re-generar Análisis{% else %}Generar Análisis OMNI{% endif %}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" style="display:none;text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:12px;margin-bottom:20px;">
+    <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);margin-bottom:8px;">
+      OMNI-REVENUE ARCHITECT analizando...
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:24px;">
+      Gemini AI procesa el perfil completo: DNA · Mercado · CompSet · Tarifas · Canales. 15–30 segundos.
+    </div>
+    <div style="display:flex;justify-content:center;gap:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:dot-pulse 1.4s ease-in-out infinite;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:dot-pulse 1.4s ease-in-out infinite .2s;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:dot-pulse 1.4s ease-in-out infinite .4s;"></div>
+    </div>
+  </div>
+  <style>
+    @keyframes dot-pulse {
+      0%, 100% { opacity: .25; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+  </style>
+
+  {% if not analysis %}
+  <!-- Empty state -->
+  <div style="text-align:center;padding:56px 24px;border:1px dashed var(--dim);border-radius:12px;">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--muted);margin-bottom:10px;">
+      Sin análisis generado
+    </div>
+    <p style="font-size:13px;color:var(--dim);max-width:480px;margin:0 auto 24px;">
+      Haz clic en <strong style="color:var(--gold);">Generar Análisis OMNI</strong> para que la IA produzca
+      la estrategia completa de revenue: tarifas, OTAs, canales, competidores y plan de acción.
+    </p>
+    <p style="font-size:11px;color:var(--dim);">
+      Con solo habitaciones + tarifa mínima ya funciona.
+      <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}" style="color:var(--gold);text-decoration:none;">Agrega más datos</a>
+      para un análisis más preciso.
+    </p>
+  </div>
+
+  {% else %}
+  <!-- Analysis output -->
+  <div id="analysis-content" style="transition:opacity .2s;">
+
+    <!-- Banner -->
+    <div style="background:linear-gradient(135deg,var(--card) 0%,var(--panel) 100%);border:1px solid rgba(212,168,67,0.2);border-radius:12px;padding:24px 28px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:50%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);"></div>
+      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:50%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);"></div>
+      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--gold2);margin-bottom:6px;">
+        OMNI-REVENUE Analysis
+      </div>
+      <div style="font-size:11px;color:var(--muted);letter-spacing:.5px;">
+        {{ prop.name or 'Propiedad' }} &nbsp;·&nbsp;
+        {% if prop.city %}{{ prop.city }} &nbsp;·&nbsp; {% endif %}
+        {{ analysis.currency }} &nbsp;·&nbsp;
+        {{ analysis.created_at.strftime('%d %b %Y %H:%M') }}
+      </div>
+    </div>
+
+    <!-- Section tabs -->
+    {% set sections = [
+      ('section_dna',          'I — DNA Profile',         'var(--gold)'),
+      ('section_diagnosis',    'II — Diagnóstico',        'var(--red)'),
+      ('section_forecast',     'III — Demand Forecast',   'var(--green)'),
+      ('section_matrix',       'IV — Pricing Matrix',     'var(--gold2)'),
+      ('section_rates',        'V — Rate Plans',          'var(--blue)'),
+      ('section_restrictions', 'VI — Restricciones',      'var(--warn)'),
+      ('section_channels',     'VII — Canales & Ads',     'var(--blue)'),
+      ('section_upsell',       'VIII — Upsell',           'var(--green)'),
+      ('section_action',       'IX — Action Plan',        'var(--red)'),
+      ('section_kpis',         'X — KPIs',                'var(--gold)')
+    ] %}
+
+    <div class="card">
+      <!-- Tab buttons -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--b2);"
+           id="tab-bar">
+        {% for field, label, color in sections %}
+        <button
+          class="section-tab"
+          data-field="{{ field }}"
+          data-color="{{ color }}"
+          onclick="showTab('{{ field }}')"
+          style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--b2);background:var(--card2);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;">
+          {{ label }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Section content panels -->
+      {% for field, label, color in sections %}
+      <div id="panel-{{ field }}" class="section-panel"
+           style="display:{% if loop.first %}block{% else %}none{% endif %};">
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:{{ color }};margin-bottom:14px;">
+          {{ label }}
+        </div>
+        <div class="omni-md">{{ analysis[field] or 'Sección no generada. Regenera el análisis.' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div><!-- /analysis-content -->
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var activeField = 'section_dna';
+
+function showTab(field) {
+  // Hide all panels
+  document.querySelectorAll('.section-panel').forEach(function(p) {
+    p.style.display = 'none';
+  });
+  // Reset all tabs
+  document.querySelectorAll('.section-tab').forEach(function(btn) {
+    btn.style.background = 'var(--card2)';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'rgba(255,255,255,0.05)';
+  });
+  // Show selected
+  var panel = document.getElementById('panel-' + field);
+  if (panel) panel.style.display = 'block';
+  // Activate tab
+  var tab = document.querySelector('[data-field="' + field + '"]');
+  if (tab) {
+    tab.style.background = 'var(--gold)';
+    tab.style.color = '#0c0e14';
+    tab.style.borderColor = 'var(--gold)';
+  }
+  activeField = field;
+}
+
+// Set first tab active on load
+showTab('section_dna');
+
+function runAnalysis() {
+  var btn = document.getElementById('analyze-btn');
+  var loading = document.getElementById('loading');
+  var content = document.getElementById('analysis-content');
+
+  btn.disabled = true;
+  document.getElementById('btn-icon').textContent = '⟳';
+  document.getElementById('btn-text').textContent = 'Analizando...';
+  if (loading) loading.style.display = 'block';
+  if (content) content.style.opacity = '0.3';
+
+  var csrfToken = document.querySelector('meta[name=csrf-token]');
+  var headers = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRFToken'] = csrfToken.content;
+
+  fetch('{{ url_for("revenue_pro.run_analysis", property_id=prop.id) }}', {
+    method: 'POST',
+    headers: headers
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      window.location.reload();
+    } else {
+      alert('Error al generar análisis:\n' + (data.error || 'Error desconocido'));
+      btn.disabled = false;
+      document.getElementById('btn-icon').textContent = '✦';
+      document.getElementById('btn-text').textContent = 'Re-generar Análisis';
+      if (loading) loading.style.display = 'none';
+      if (content) content.style.opacity = '1';
+    }
+  })
+  .catch(function(e) {
+    alert('Error de conexión: ' + e.message);
+    btn.disabled = false;
+    document.getElementById('btn-icon').textContent = '✦';
+    document.getElementById('btn-text').textContent = 'Re-generar Análisis';
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.opacity = '1';
+  });
+}
+</script>
+{% endblock %}

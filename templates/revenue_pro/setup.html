@@ -1,0 +1,351 @@
+{% extends "revenue_pro/base.html" %}
+{% block title %}Configurar {{ prop.name or 'Propiedad' }} — Omni Revenue{% endblock %}
+
+{% block topbar_center %}
+<div style="font-size:13px;color:var(--muted);">
+  Configurando: <strong style="color:var(--cream);">{{ prop.name or 'Propiedad #' + prop.id|string }}</strong>
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:920px;margin:0 auto;padding:24px;">
+
+  <!-- Step progress bar -->
+  {% set step_labels = {'rooms': 'Habitaciones & Perfil', 'performance': 'Performance', 'market': 'Mercado & CompSet'} %}
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:24px;overflow-x:auto;padding-bottom:4px;">
+    {% for s in steps %}
+    {% set done = loop.index0 < steps.index(step) %}
+    {% set active = s == step %}
+    <div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+      <div style="padding:6px 16px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
+        {% if active %}background:var(--gold);color:#0c0e14;
+        {% elif done %}background:rgba(76,175,120,0.12);color:var(--green);border:1px solid rgba(76,175,120,0.3);
+        {% else %}background:var(--card2);color:var(--muted);border:1px solid var(--b2);{% endif %}">
+        {{ loop.index }}. {{ step_labels[s] }}
+      </div>
+      {% if not loop.last %}
+      <div style="color:var(--dim);font-size:14px;">›</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% if step == 'rooms' %}
+    <!-- ══ STEP 1: Habitaciones & Perfil ══ -->
+
+    <div class="card">
+      <div class="card-t">Identidad de la Propiedad</div>
+      <div class="g2">
+        <div class="field"><label>Nombre</label>
+          <input class="fi" type="text" name="name" value="{{ prop.name or '' }}" placeholder="Hotel Las Palmas">
+        </div>
+        <div class="field"><label>Ciudad / Ubicación</label>
+          <input class="fi" type="text" name="city" value="{{ prop.city or '' }}" placeholder="Bogotá · Aeropuerto El Dorado">
+        </div>
+        <div class="field"><label>Tipo de propiedad</label>
+          <select class="fi" name="property_type">
+            {% for t in ['hotel','str','boutique','glamping','hostel','resort'] %}
+            <option value="{{ t }}" {% if prop.property_type == t %}selected{% endif %}>{{ t|upper if t == 'str' else t|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Posicionamiento</label>
+          <select class="fi" name="positioning">
+            {% for p in ['luxury','upscale','midscale','budget'] %}
+            <option value="{{ p }}" {% if prop.positioning == p %}selected{% endif %}>{{ p|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Estrellas</label>
+          <select class="fi" name="star_rating">
+            {% for n in [1,2,3,4,5] %}
+            <option value="{{ n }}" {% if (prop.star_rating or 3) == n %}selected{% endif %}>{{ n }} estrella{% if n != 1 %}s{% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Brand Strength</label>
+          <select class="fi" name="brand_strength">
+            <option value="low" {% if (prop.brand_strength or 'low') == 'low' %}selected{% endif %}>Low — marca desconocida</option>
+            <option value="medium" {% if prop.brand_strength == 'medium' %}selected{% endif %}>Medium — reconocida localmente</option>
+            <option value="high" {% if prop.brand_strength == 'high' %}selected{% endif %}>High — nacional / internacional</option>
+          </select>
+        </div>
+        <div class="field"><label>Moneda</label>
+          <select class="fi" name="currency">
+            {% for c in ['COP','USD','EUR','MXN','CLP','PEN','ARS'] %}
+            <option value="{{ c }}" {% if (prop.currency or 'COP') == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Check-in / Check-out</label>
+          <input class="fi" type="text" name="checkin_hours" value="{{ prop.checkin_hours or '' }}" placeholder="Check-in 24h · Check-out 12:00">
+        </div>
+        <div class="field" style="grid-column:span 2"><label>USPs — Qué hace especial esta propiedad</label>
+          <input class="fi" type="text" name="usp_text" value="{{ prop.usp_text or '' }}" placeholder="5 min aeropuerto El Dorado, check-in 24h, shuttle gratis, zona corporativa">
+        </div>
+        <div class="field"><label>Amenities (separados por coma)</label>
+          <textarea class="fi" name="amenities" rows="2" placeholder="WiFi, AC, parking, desayuno...">{{ prop.amenities or '' }}</textarea>
+        </div>
+        <div class="field"><label>Extras / Add-ons pagos</label>
+          <textarea class="fi" name="extras" rows="2" placeholder="Transfer aeropuerto $30K, desayuno $15K, late checkout $20K...">{{ prop.extras or '' }}</textarea>
+        </div>
+        <div class="field"><label>Días de sol / año</label>
+          <input class="fi" type="number" name="sunny_days" value="{{ prop.sunny_days or '' }}" placeholder="250">
+        </div>
+        <div class="field"><label>Tipo de clima</label>
+          <input class="fi" type="text" name="climate_type" value="{{ prop.climate_type or '' }}" placeholder="Andino, Tropical, Costa, Montaña...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Room types -->
+    <div class="card">
+      <div class="card-t">
+        Tipos de Habitación
+        <span style="color:var(--muted);font-size:10px;font-weight:400;margin-left:8px;">
+          Standard = BASE · Otros tipos derivan tarifa del multiplicador × tarifa mínima
+        </span>
+      </div>
+      <div style="overflow-x:auto;margin-bottom:12px;">
+        <table style="width:100%;border-collapse:collapse;min-width:600px;" id="rt-table">
+          <thead>
+            <tr style="background:var(--card2);">
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);text-align:left;border-bottom:1px solid var(--b2);">Tipo</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:center;border-bottom:1px solid var(--b2);">Unidades ★</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:center;border-bottom:1px solid var(--b2);">Pax máx</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:center;border-bottom:1px solid var(--b2);">Multiplicador</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);text-align:right;border-bottom:1px solid var(--b2);">Desayuno/pax</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:center;border-bottom:1px solid var(--b2);">Ocupación %</th>
+              <th style="border-bottom:1px solid var(--b2);width:32px;"></th>
+            </tr>
+          </thead>
+          <tbody id="rt-body">
+            {% for rt in room_types %}
+            <tr class="rt-row" style="border-bottom:1px solid var(--b2);">
+              <td style="padding:8px 12px;">
+                <input class="fi" type="text" name="rt_name[]" value="{{ rt.name }}" style="width:120px;">
+              </td>
+              <td style="padding:8px 12px;text-align:center;">
+                <input class="fi" type="number" name="rt_units[]" value="{{ rt.units }}" min="0" style="width:60px;text-align:center;">
+              </td>
+              <td style="padding:8px 12px;text-align:center;">
+                <input class="fi" type="number" name="rt_pax[]" value="{{ rt.pax_max }}" min="1" style="width:50px;text-align:center;">
+              </td>
+              <td style="padding:8px 12px;text-align:center;">
+                <select class="fi" name="rt_mult[]" style="width:80px;">
+                  {% for m in ['1.00','1.10','1.15','1.20','1.25','1.30','1.35','1.40','1.45','1.50','1.60','1.70','1.80','2.00','2.50','3.00'] %}
+                  <option value="{{ m }}" {% if '{:.2f}'.format(rt.multiplier) == m %}selected{% endif %}>×{{ m }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td style="padding:8px 12px;text-align:right;">
+                <input class="fi" type="text" name="rt_bkf[]" value="{{ rt.breakfast_per_pax|int if rt.breakfast_per_pax else '' }}" placeholder="0" style="width:90px;text-align:right;color:var(--green);">
+              </td>
+              <td style="padding:8px 12px;text-align:center;">
+                <input class="fi" type="number" name="rt_occ[]" value="{{ rt.occupancy_pct|int }}" min="0" max="100" style="width:60px;text-align:center;">
+              </td>
+              <td style="padding:8px 6px;">
+                <button type="button" onclick="rmRow(this,'rt-body','rt-row')"
+                  style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:4px;" title="Eliminar">✕</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="button" onclick="addRtRow()" class="add-row-btn">+ Agregar tipo de habitación</button>
+    </div>
+
+    <!-- CompSet -->
+    <div class="card">
+      <div class="card-t">Competidores Directos (CompSet)</div>
+      <div style="overflow-x:auto;margin-bottom:12px;">
+        <table style="width:100%;border-collapse:collapse;min-width:560px;" id="cs-table">
+          <thead>
+            <tr style="background:var(--card2);">
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;border-bottom:1px solid var(--b2);">Nombre</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;border-bottom:1px solid var(--b2);">Tipo</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:center;border-bottom:1px solid var(--b2);">Hab.</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold2);text-align:right;border-bottom:1px solid var(--b2);">Tarifa aprox.</th>
+              <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:center;border-bottom:1px solid var(--b2);">Posición</th>
+              <th style="border-bottom:1px solid var(--b2);width:32px;"></th>
+            </tr>
+          </thead>
+          <tbody id="cs-body">
+            {% for c in compset %}
+            <tr class="cs-row" style="border-bottom:1px solid var(--b2);">
+              <td style="padding:8px 12px;"><input class="fi" type="text" name="comp_name[]" value="{{ c.name }}" style="width:160px;" placeholder="Nombre del competidor"></td>
+              <td style="padding:8px 12px;"><input class="fi" type="text" name="comp_type[]" value="{{ c.comp_type or '' }}" style="width:130px;" placeholder="Hotel · Midscale"></td>
+              <td style="padding:8px 12px;text-align:center;"><input class="fi" type="number" name="comp_rooms[]" value="{{ c.rooms or '' }}" style="width:60px;text-align:center;" placeholder="0"></td>
+              <td style="padding:8px 12px;text-align:right;"><input class="fi" type="text" name="comp_rate[]" value="{{ c.avg_rate|int if c.avg_rate else '' }}" style="width:100px;text-align:right;color:var(--gold2);" placeholder="0"></td>
+              <td style="padding:8px 12px;text-align:center;">
+                <select class="fi" name="comp_pos[]" style="width:100px;">
+                  <option value="superior" {% if c.position=='superior' %}selected{% endif %}>Superior</option>
+                  <option value="similar" {% if c.position=='similar' %}selected{% endif %}>Similar</option>
+                  <option value="inferior" {% if c.position=='inferior' %}selected{% endif %}>Inferior</option>
+                </select>
+              </td>
+              <td style="padding:8px 6px;"><button type="button" onclick="rmRow(this,'cs-body','cs-row')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:4px;">✕</button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="button" onclick="addCsRow()" class="add-row-btn">+ Agregar competidor</button>
+    </div>
+
+    {% elif step == 'performance' %}
+    <!-- ══ STEP 2: Performance ══ -->
+    <div class="card">
+      <div class="card-t">Métricas Actuales — Últimos 30 días</div>
+      <div class="g3">
+        <div class="field"><label>Ocupación %</label>
+          <input class="fi" type="number" name="occupancy_pct" value="{{ perf.occupancy_pct|int if perf and perf.occupancy_pct else '' }}" placeholder="55">
+        </div>
+        <div class="field"><label>ADR ({{ prop.currency }})</label>
+          <input class="fi" type="text" name="adr" value="{{ perf.adr|int if perf and perf.adr else '' }}" placeholder="150000">
+        </div>
+        <div class="field"><label>RevPAR</label>
+          <input class="fi" type="text" name="revpar" value="{{ perf.revpar|int if perf and perf.revpar else '' }}" placeholder="82500">
+        </div>
+        <div class="field"><label>Booking Window promedio (días)</label>
+          <input class="fi" type="number" name="booking_window_days" value="{{ perf.booking_window_days|int if perf and perf.booking_window_days else '' }}" placeholder="7">
+        </div>
+        <div class="field"><label>LOS promedio (noches)</label>
+          <input class="fi" type="number" name="avg_los" step="0.1" value="{{ perf.avg_los if perf and perf.avg_los else '' }}" placeholder="1.8">
+        </div>
+        <div class="field"><label>Cancelaciones %</label>
+          <input class="fi" type="number" name="cancellation_pct" value="{{ perf.cancellation_pct|int if perf and perf.cancellation_pct else '' }}" placeholder="12">
+        </div>
+        <div class="field"><label>Ocupación promedio ciudad %</label>
+          <input class="fi" type="number" name="city_avg_occ_pct" value="{{ perf.city_avg_occ_pct|int if perf and perf.city_avg_occ_pct else '' }}" placeholder="65">
+        </div>
+        <div class="field"><label>Segmento principal</label>
+          <select class="fi" name="guest_segment">
+            {% for seg in ['Corporativo/Negocios','Leisure/Vacaciones','Grupos','Tour Operador','Mixto'] %}
+            <option {% if perf and perf.guest_segment == seg %}selected{% endif %}>{{ seg }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Top 3 mercados emisores</label>
+          <input class="fi" type="text" name="feeder_markets" value="{{ perf.feeder_markets or '' }}" placeholder="Bogotá, Medellín, Miami">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-t">Mix de Canales (%)</div>
+      <div class="g3">
+        {% set ch_fields = [
+          ('channel_direct_pct','Reserva Directa %'),
+          ('channel_booking_pct','Booking.com %'),
+          ('channel_expedia_pct','Expedia %'),
+          ('channel_airbnb_pct','Airbnb %'),
+          ('channel_corp_pct','Corporativo / B2B %'),
+          ('channel_other_pct','Otros %')
+        ] %}
+        {% for fname, label in ch_fields %}
+        <div class="field">
+          <label>{{ label }}</label>
+          <input class="fi" type="number" name="{{ fname }}" min="0" max="100"
+            value="{{ (perf[fname]|int if perf and perf[fname] else 0) }}" placeholder="0">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% elif step == 'market' %}
+    <!-- ══ STEP 3: Mercado & CompSet ══ -->
+    <div class="card">
+      <div class="card-t">Entorno de Mercado</div>
+      <div class="g2">
+        <div class="field"><label>Tarifa promedio del mercado ({{ prop.currency }})</label>
+          <input class="fi" type="text" name="market_avg_rate"
+            value="{{ market.market_avg_rate|int if market and market.market_avg_rate else '' }}" placeholder="163000">
+        </div>
+        <div class="field"><label>Nivel de demanda actual</label>
+          <select class="fi" name="demand_level">
+            {% for d in [('low','Baja'),('medium','Media'),('high','Alta'),('compression','Compresión')] %}
+            <option value="{{ d[0] }}" {% if market and market.demand_level == d[0] %}selected{% endif %}>{{ d[1] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Patrón de estacionalidad</label>
+          <input class="fi" type="text" name="seasonality"
+            value="{{ market.seasonality or '' }}" placeholder="Pico: Dic–Feb y Jun–Jul">
+        </div>
+        <div class="field"><label>Drivers de demanda principales</label>
+          <input class="fi" type="text" name="demand_drivers"
+            value="{{ market.demand_drivers or '' }}" placeholder="Vuelos El Dorado, viajeros de negocios...">
+        </div>
+        <div class="field" style="grid-column:span 2"><label>Eventos / Feriados próximos</label>
+          <textarea class="fi" name="upcoming_events" rows="3"
+            placeholder="Feria del Libro (mayo), Corpus Christi (junio)...">{{ market.upcoming_events or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Nav buttons -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;">
+      {% set si = steps.index(step) %}
+      {% if si > 0 %}
+      <a href="{{ url_for('revenue_pro.setup', property_id=prop.id, step=steps[si-1]) }}"
+         class="btn-ghost" style="text-decoration:none;">← Anterior</a>
+      {% else %}
+      <a href="{{ url_for('revenue_pro.portfolio') }}" class="btn-ghost" style="text-decoration:none;">← Portafolio</a>
+      {% endif %}
+      <button type="submit" class="btn-gold">
+        {% if step == steps[-1] %}✦ Ir al Análisis{% else %}Guardar y continuar →{% endif %}
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .add-row-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;border:1px dashed var(--dim);border-radius:6px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+  .add-row-btn:hover{border-color:var(--gold);color:var(--gold);}
+</style>
+<script>
+function rmRow(btn, tbodyId, rowClass) {
+  var rows = document.querySelectorAll('#' + tbodyId + ' .' + rowClass);
+  if (rows.length <= 1) { alert('Debe haber al menos 1 fila.'); return; }
+  btn.closest('tr').remove();
+}
+function addRtRow() {
+  var n = prompt('Nombre del tipo de habitación (ej: Suite, Cabaña, Loft):');
+  if (!n) return;
+  var tb = document.getElementById('rt-body');
+  var tr = document.createElement('tr');
+  tr.className = 'rt-row';
+  tr.style.borderBottom = '1px solid var(--b2)';
+  tr.innerHTML = '<td style="padding:8px 12px;"><input class="fi" type="text" name="rt_name[]" value="' + n + '" style="width:120px;"></td>'
+    + '<td style="padding:8px 12px;text-align:center;"><input class="fi" type="number" name="rt_units[]" value="1" min="0" style="width:60px;text-align:center;"></td>'
+    + '<td style="padding:8px 12px;text-align:center;"><input class="fi" type="number" name="rt_pax[]" value="2" min="1" style="width:50px;text-align:center;"></td>'
+    + '<td style="padding:8px 12px;text-align:center;"><select class="fi" name="rt_mult[]" style="width:80px;"><option value="1.00">×1.00</option><option value="1.15">×1.15</option><option value="1.20">×1.20</option><option value="1.35">×1.35</option><option value="1.50">×1.50</option><option value="1.70">×1.70</option><option value="2.00">×2.00</option><option value="2.50">×2.50</option></select></td>'
+    + '<td style="padding:8px 12px;text-align:right;"><input class="fi" type="text" name="rt_bkf[]" placeholder="0" style="width:90px;text-align:right;color:var(--green);"></td>'
+    + '<td style="padding:8px 12px;text-align:center;"><input class="fi" type="number" name="rt_occ[]" value="55" min="0" max="100" style="width:60px;text-align:center;"></td>'
+    + '<td style="padding:8px 6px;"><button type="button" onclick="rmRow(this,\'rt-body\',\'rt-row\')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:4px;">✕</button></td>';
+  tb.appendChild(tr);
+}
+function addCsRow() {
+  var tb = document.getElementById('cs-body');
+  var tr = document.createElement('tr');
+  tr.className = 'cs-row';
+  tr.style.borderBottom = '1px solid var(--b2)';
+  tr.innerHTML = '<td style="padding:8px 12px;"><input class="fi" type="text" name="comp_name[]" placeholder="Nombre del competidor" style="width:160px;"></td>'
+    + '<td style="padding:8px 12px;"><input class="fi" type="text" name="comp_type[]" placeholder="Hotel · Midscale" style="width:130px;"></td>'
+    + '<td style="padding:8px 12px;text-align:center;"><input class="fi" type="number" name="comp_rooms[]" placeholder="0" style="width:60px;text-align:center;"></td>'
+    + '<td style="padding:8px 12px;text-align:right;"><input class="fi" type="text" name="comp_rate[]" placeholder="0" style="width:100px;text-align:right;color:var(--gold2);"></td>'
+    + '<td style="padding:8px 12px;text-align:center;"><select class="fi" name="comp_pos[]" style="width:100px;"><option value="superior">Superior</option><option value="similar" selected>Similar</option><option value="inferior">Inferior</option></select></td>'
+    + '<td style="padding:8px 6px;"><button type="button" onclick="rmRow(this,\'cs-body\',\'cs-row\')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:4px;">✕</button></td>';
+  tb.appendChild(tr);
+}
+</script>
+{% endblock %}

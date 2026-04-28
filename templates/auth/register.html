@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Omni Revenue — Crear Cuenta</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0c0e14;color:#ede8dc;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:#13161f;border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:40px;width:100%;max-width:420px;}
+  .brand{text-align:center;margin-bottom:28px;}
+  .brand-mark{width:44px;height:44px;border:2px solid #d4a843;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;color:#d4a843;font-size:16px;font-weight:700;margin:0 auto 10px;}
+  .brand-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:#ede8dc;}
+  .brand-sub{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#8a6820;margin-top:2px;}
+  h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#ede8dc;margin-bottom:20px;text-align:center;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#7a7e8a;margin-bottom:6px;}
+  .field input{width:100%;background:#1f2333;border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px 13px;color:#ede8dc;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;}
+  .field input:focus{border-color:#d4a843;}
+  .btn{width:100%;background:#d4a843;color:#0c0e14;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;font-family:'Inter',sans-serif;transition:background .15s;}
+  .btn:hover{background:#f0cc7a;}
+  .msg{padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;}
+  .msg.error{background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e07070;}
+  .footer{text-align:center;margin-top:18px;font-size:12px;color:#3a3e4a;}
+  .footer a{color:#d4a843;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="brand-mark">OR</div>
+    <div class="brand-name">Omni Revenue</div>
+    <div class="brand-sub">Revenue Intelligence Platform</div>
+  </div>
+  <h2>Crear cuenta</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="msg {{ cat }}">{{ msg }}</div>
+  {% endfor %}
+  {% endwith %}
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label>Nombre completo</label>
+      <input type="text" name="full_name" required placeholder="Felipe García">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="email" required placeholder="tu@email.com">
+    </div>
+    <div class="field">
+      <label>Nombre de tu agencia / empresa</label>
+      <input type="text" name="agency" required placeholder="Mi Agencia de Revenue">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" name="password" required placeholder="Mínimo 6 caracteres">
+    </div>
+    <button type="submit" class="btn">Crear cuenta</button>
+  </form>
+
+  <div class="footer">
+    ¿Ya tienes cuenta? <a href="{{ url_for('auth.login') }}">Inicia sesión</a>
+  </div>
+</div>
+</body>
+</html>

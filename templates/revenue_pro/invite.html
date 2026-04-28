@@ -1,0 +1,55 @@
+{% extends "revenue_pro/base.html" %}
+{% block title %}Dar acceso — {{ prop.name or 'Propiedad' }}{% endblock %}
+
+{% block content %}
+<div style="max-width:520px;margin:40px auto;padding:0 24px;">
+
+  <a href="{{ url_for('revenue_pro.analysis', property_id=prop.id) }}"
+     style="font-size:12px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:20px;">
+    ← Volver al análisis
+  </a>
+
+  <div class="card">
+    <h1 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--cream);margin-bottom:4px;">
+      Dar acceso al propietario
+    </h1>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+      El propietario de <strong style="color:var(--cream);">{{ prop.name or 'esta propiedad' }}</strong>
+      podrá acceder desde cualquier país, ver solo su propiedad y generar su propio análisis OMNI-REVENUE.
+    </p>
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        <div class="field">
+          <label>Nombre completo</label>
+          <input class="fi" type="text" name="full_name" required placeholder="Juan García">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input class="fi" type="email" name="email" required placeholder="juan@hotel.com">
+        </div>
+        <div class="field">
+          <label>Contraseña de acceso</label>
+          <input class="fi" type="text" name="password" required placeholder="Mínimo 6 caracteres">
+        </div>
+      </div>
+
+      <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:8px;padding:14px 16px;font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.7;">
+        El propietario ingresa en
+        <strong style="color:var(--cream);">[tu-dominio-railway]/login</strong>
+        con el email y contraseña que defines aquí.
+        Solo verá su propiedad — no tendrá acceso a otras propiedades de tu agencia.
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <a href="{{ url_for('revenue_pro.analysis', property_id=prop.id) }}"
+           class="btn-ghost" style="text-decoration:none;">Cancelar</a>
+        <button type="submit" class="btn-gold">Crear acceso</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

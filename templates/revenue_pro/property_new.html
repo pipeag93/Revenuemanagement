@@ -1,0 +1,73 @@
+{% extends "revenue_pro/base.html" %}
+{% block title %}Nueva Propiedad — Omni Revenue{% endblock %}
+
+{% block content %}
+<div style="max-width:580px;margin:40px auto;padding:0 24px;">
+
+  <a href="{{ url_for('revenue_pro.portfolio') }}"
+     style="font-size:12px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:20px;">
+    ← Volver al portafolio
+  </a>
+
+  <div class="card">
+    <h1 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--cream);margin-bottom:4px;">
+      Nueva Propiedad
+    </h1>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:24px;">
+      Solo <strong style="color:var(--gold);">dos campos son obligatorios</strong> (★). El resto enriquece el análisis y se puede completar después.
+    </p>
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="g2">
+        <div class="field">
+          <label>Nombre de la propiedad</label>
+          <input class="fi" type="text" name="name" placeholder="ej. Hotel Las Palmas">
+        </div>
+        <div class="field">
+          <label>Ciudad / Ubicación</label>
+          <input class="fi" type="text" name="city" placeholder="ej. Bogotá · El Dorado">
+        </div>
+        <div class="field">
+          <label class="req">Total habitaciones / unidades</label>
+          <input class="fi req-inp" type="number" name="total_rooms" min="1" required placeholder="28">
+        </div>
+        <div class="field">
+          <label class="req">Tarifa mínima del propietario</label>
+          <input class="fi req-inp" type="number" name="price_floor" min="1" required placeholder="120000">
+        </div>
+        <div class="field">
+          <label>Tipo de propiedad</label>
+          <select class="fi" name="property_type">
+            <option value="hotel">Hotel</option>
+            <option value="str">STR — Renta Corta</option>
+            <option value="boutique">Boutique</option>
+            <option value="glamping">Glamping</option>
+            <option value="hostel">Hostal</option>
+            <option value="resort">Resort</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Moneda</label>
+          <select class="fi" name="currency">
+            <option value="COP">COP — Peso Colombiano</option>
+            <option value="USD">USD — Dólar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="MXN">MXN — Peso Mexicano</option>
+            <option value="CLP">CLP — Peso Chileno</option>
+            <option value="PEN">PEN — Sol Peruano</option>
+            <option value="ARS">ARS — Peso Argentino</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:8px;border-top:1px solid var(--b2);margin-top:8px;">
+        <a href="{{ url_for('revenue_pro.portfolio') }}" class="btn-ghost" style="text-decoration:none;">Cancelar</a>
+        <button type="submit" class="btn-gold">Crear y continuar →</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
