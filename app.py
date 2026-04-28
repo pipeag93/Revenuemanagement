@@ -75,6 +75,5 @@ def _seed():
 app = create_app()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
-    app.run(debug=os.environ.get('FLASK_ENV') != 'production',
-            host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(debug=False, host='0.0.0.0', port=port)
