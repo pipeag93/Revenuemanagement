@@ -291,10 +291,13 @@
 
     <!-- ══ PMS FILE UPLOAD ══ -->
     <div class="card" style="border-color:rgba(212,168,67,0.3);background:rgba(212,168,67,0.03);" id="pms-card">
-      <div class="card-t" style="color:var(--gold);">Adjuntar Reporte del PMS / OTA — Opcional</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="card-t" style="color:var(--gold);margin-bottom:0;">Adjuntar Reportes del PMS / OTA — Opcional</div>
+        <span style="font-size:10px;font-weight:700;background:rgba(212,168,67,0.15);color:var(--gold);border:1px solid rgba(212,168,67,0.3);border-radius:20px;padding:3px 10px;" id="file-counter">Máx. 3 archivos</span>
+      </div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
-        Sube cualquier reporte de tu sistema — la IA lo lee automáticamente y enriquece el análisis.
-        <strong style="color:var(--cream);">Entre más datos, mayor precisión.</strong>
+        Sube hasta <strong style="color:var(--cream);">3 archivos</strong> con reportes de tu PMS, OTA o cualquier sistema.
+        La IA los lee todos y enriquece el análisis. <strong style="color:var(--cream);">Entre más datos, mayor precisión.</strong>
       </p>
 
       <!-- Drop zone -->
@@ -302,36 +305,39 @@
            ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='rgba(212,168,67,0.08)'"
            ondragleave="this.style.borderColor='rgba(212,168,67,0.2)';this.style.background='transparent'"
            ondrop="handleDrop(event)"
-           style="border:2px dashed rgba(212,168,67,0.25);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;"
-           onclick="document.getElementById('pms-file-input').click()">
+           style="border:2px dashed rgba(212,168,67,0.25);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;">
         <div style="font-size:28px;margin-bottom:8px;">📎</div>
         <div style="font-size:13px;font-weight:600;color:var(--cream);margin-bottom:4px;">
-          Arrastra tu archivo aquí o haz clic para seleccionar
+          Arrastra archivos aquí o haz clic para seleccionar
         </div>
-        <div style="font-size:11px;color:var(--muted);">
-          PDF · Excel (.xlsx) · CSV · Word · PowerPoint · JPG · PNG
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">
+          PDF · Excel · CSV · Word · PowerPoint · JPG · PNG &nbsp;·&nbsp; Máximo 3 archivos
         </div>
-        <input type="file" id="pms-file-input" style="display:none;"
+        <button type="button" onclick="document.getElementById('pms-file-input').click()"
+          style="background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.3);color:var(--gold);padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">
+          Seleccionar archivos
+        </button>
+        <input type="file" id="pms-file-input" style="display:none;" multiple
                accept=".pdf,.xlsx,.xls,.csv,.txt,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
-               onchange="uploadPMS(this.files[0])">
+               onchange="handleFiles(this.files)">
+      </div>
+
+      <!-- File list -->
+      <div id="file-list" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">
+        {% if prop.pms_raw_data %}
+        <div class="file-item" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(76,175,120,0.08);border:1px solid rgba(76,175,120,0.25);border-radius:8px;">
+          <span style="font-size:16px;">✓</span>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:600;color:var(--green);">Archivos cargados anteriormente</div>
+            <div style="font-size:10px;color:var(--muted);">{{ prop.pms_raw_data[:100] }}...</div>
+          </div>
+          <button type="button" onclick="clearAllFiles()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;" title="Eliminar">✕</button>
+        </div>
+        {% endif %}
       </div>
 
       <!-- Status -->
-      <div id="pms-status" style="display:none;margin-top:12px;padding:12px 14px;border-radius:8px;font-size:12px;"></div>
-
-      <!-- Current file indicator -->
-      {% if prop.pms_raw_data %}
-      <div id="pms-current" style="margin-top:12px;display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(76,175,120,0.08);border:1px solid rgba(76,175,120,0.25);border-radius:8px;">
-        <span style="font-size:16px;">✓</span>
-        <div>
-          <div style="font-size:12px;font-weight:600;color:var(--green);">Archivo cargado</div>
-          <div style="font-size:10px;color:var(--muted);">{{ prop.pms_raw_data[:80] }}...</div>
-        </div>
-        <button type="button" onclick="clearPMS()" style="margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;" title="Eliminar">✕</button>
-      </div>
-      {% else %}
-      <div id="pms-current" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(76,175,120,0.08);border:1px solid rgba(76,175,120,0.25);border-radius:8px;font-size:12px;color:var(--green);"></div>
-      {% endif %}
+      <div id="pms-status" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:12px;"></div>
     </div>
 
     <!-- Nav buttons -->
@@ -355,52 +361,16 @@
 {% block scripts %}
 <script>
 var propertyId = {{ prop.id }};
+var uploadedFiles = 0;
+var MAX_FILES = 3;
 
-function uploadPMS(file) {
-  if (!file) return;
-  var status = document.getElementById('pms-status');
-  var current = document.getElementById('pms-current');
-  var dz = document.getElementById('drop-zone');
-
-  status.style.display = 'block';
-  status.style.background = 'rgba(212,168,67,0.08)';
-  status.style.border = '1px solid rgba(212,168,67,0.2)';
-  status.style.color = 'var(--gold2)';
-  status.innerHTML = '⟳ Procesando <strong>' + file.name + '</strong>...';
-  dz.style.opacity = '0.6';
-
-  var fd = new FormData();
-  fd.append('pms_file', file);
-
-  fetch('/revenue-pro/' + propertyId + '/upload-pms', {
-    method: 'POST',
-    body: fd,
-    credentials: 'include'
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    dz.style.opacity = '1';
-    if (data.ok) {
-      status.style.background = 'rgba(76,175,120,0.08)';
-      status.style.border = '1px solid rgba(76,175,120,0.25)';
-      status.style.color = 'var(--green)';
-      status.innerHTML = '✓ <strong>' + data.filename + '</strong> cargado correctamente';
-      current.style.display = 'flex';
-      current.innerHTML = '<span style="font-size:16px;">✓</span><div><div style="font-size:12px;font-weight:600;color:var(--green);">Archivo listo para el análisis</div><div style="font-size:10px;color:var(--muted);">' + (data.preview || '') + '</div></div><button type="button" onclick="clearPMS()" style="margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;">✕</button>';
-    } else {
-      status.style.background = 'rgba(224,92,92,0.08)';
-      status.style.border = '1px solid rgba(224,92,92,0.25)';
-      status.style.color = 'var(--red)';
-      status.innerHTML = '✕ Error: ' + (data.error || 'No se pudo procesar el archivo');
-    }
-  })
-  .catch(function(e) {
-    dz.style.opacity = '1';
-    status.style.background = 'rgba(224,92,92,0.08)';
-    status.style.border = '1px solid rgba(224,92,92,0.25)';
-    status.style.color = 'var(--red)';
-    status.innerHTML = '✕ Error de conexión: ' + e.message;
-  });
+function handleFiles(files) {
+  var arr = Array.from(files).slice(0, MAX_FILES - uploadedFiles);
+  if (arr.length === 0) {
+    showStatus('error', 'Ya cargaste el máximo de ' + MAX_FILES + ' archivos.');
+    return;
+  }
+  arr.forEach(function(f) { uploadFile(f); });
 }
 
 function handleDrop(e) {
@@ -408,18 +378,96 @@ function handleDrop(e) {
   var dz = document.getElementById('drop-zone');
   dz.style.borderColor = 'rgba(212,168,67,0.25)';
   dz.style.background = 'transparent';
-  var files = e.dataTransfer.files;
-  if (files.length > 0) uploadPMS(files[0]);
+  handleFiles(e.dataTransfer.files);
 }
 
-function clearPMS() {
+function uploadFile(file) {
+  if (uploadedFiles >= MAX_FILES) {
+    showStatus('error', 'Máximo ' + MAX_FILES + ' archivos. Elimina uno para agregar otro.');
+    return;
+  }
+
+  var itemId = 'file-' + Date.now();
+  var list = document.getElementById('file-list');
+  var item = document.createElement('div');
+  item.id = itemId;
+  item.className = 'file-item';
+  item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(212,168,67,0.06);border:1px solid rgba(212,168,67,0.2);border-radius:8px;';
+  item.innerHTML = '<span style="font-size:16px;">⟳</span><div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--gold2);">' + file.name + '</div><div style="font-size:10px;color:var(--muted);">Procesando...</div></div>';
+  list.appendChild(item);
+
+  var fd = new FormData();
+  fd.append('pms_file', file);
+
   fetch('/revenue-pro/' + propertyId + '/upload-pms', {
-    method: 'POST',
-    body: new FormData(),
-    credentials: 'include'
-  }).catch(function(){});
-  document.getElementById('pms-current').style.display = 'none';
-  document.getElementById('pms-status').style.display = 'none';
+    method: 'POST', body: fd, credentials: 'include'
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      uploadedFiles++;
+      item.style.background = 'rgba(76,175,120,0.08)';
+      item.style.borderColor = 'rgba(76,175,120,0.3)';
+      item.innerHTML = '<span style="font-size:16px;">✓</span>'
+        + '<div style="flex:1;"><div style="font-size:12px;font-weight:600;color:var(--green);">' + data.filename + '</div>'
+        + '<div style="font-size:10px;color:var(--muted);">' + (data.preview || '') + '</div></div>'
+        + '<button type="button" onclick="removeFile(this,\'' + itemId + '\')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;">✕</button>';
+      updateCounter();
+      showStatus('ok', '✓ ' + data.filename + ' listo para el análisis');
+    } else {
+      item.remove();
+      showStatus('error', '✕ ' + (data.error || 'Error procesando ' + file.name));
+    }
+  })
+  .catch(function(e) {
+    item.remove();
+    showStatus('error', '✕ Error: ' + e.message);
+  });
+}
+
+function removeFile(btn, itemId) {
+  document.getElementById(itemId).remove();
+  uploadedFiles = Math.max(0, uploadedFiles - 1);
+  updateCounter();
+}
+
+function clearAllFiles() {
+  document.getElementById('file-list').innerHTML = '';
+  uploadedFiles = 0;
+  updateCounter();
+}
+
+function updateCounter() {
+  var el = document.getElementById('file-counter');
+  if (!el) return;
+  var remaining = MAX_FILES - uploadedFiles;
+  if (remaining === 0) {
+    el.innerHTML = '✓ 3/3 archivos';
+    el.style.background = 'rgba(76,175,120,0.12)';
+    el.style.color = 'var(--green)';
+    el.style.borderColor = 'rgba(76,175,120,0.3)';
+  } else {
+    el.innerHTML = uploadedFiles + '/3 · Puedes agregar ' + remaining + ' más';
+    el.style.background = 'rgba(212,168,67,0.12)';
+    el.style.color = 'var(--gold)';
+    el.style.borderColor = 'rgba(212,168,67,0.3)';
+  }
+}
+
+function showStatus(type, msg) {
+  var s = document.getElementById('pms-status');
+  s.style.display = 'block';
+  if (type === 'ok') {
+    s.style.background = 'rgba(76,175,120,0.08)';
+    s.style.border = '1px solid rgba(76,175,120,0.25)';
+    s.style.color = 'var(--green)';
+  } else {
+    s.style.background = 'rgba(224,92,92,0.08)';
+    s.style.border = '1px solid rgba(224,92,92,0.25)';
+    s.style.color = 'var(--red)';
+  }
+  s.innerHTML = msg;
+  setTimeout(function() { s.style.display = 'none'; }, 4000);
 }
 </script>
 <style>

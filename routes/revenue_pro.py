@@ -379,13 +379,21 @@ def upload_pms(property_id):
     if not extracted or not extracted.strip():
         return jsonify({'error': 'No se pudo extraer texto del archivo'}), 400
 
-    prop.pms_raw_data = f'[Archivo: {f.filename}]\n\n{extracted[:4000]}'
+    new_entry = f'\n\n=== Archivo: {f.filename} ===\n{extracted[:2000]}'
+
+    # Count existing files
+    existing = prop.pms_raw_data or ''
+    file_count = existing.count('=== Archivo:')
+    if file_count >= 3:
+        return jsonify({'error': 'Máximo 3 archivos. Elimina uno antes de agregar otro.'}), 400
+
+    prop.pms_raw_data = (existing + new_entry).strip()[:6000]
     db.session.commit()
 
     return jsonify({
         'ok': True,
         'filename': f.filename,
-        'preview': extracted[:200] + ('...' if len(extracted) > 200 else '')
+        'preview': extracted[:150] + ('...' if len(extracted) > 150 else '')
     })
 
 
