@@ -690,7 +690,7 @@ function buildPDFContent() {
 
   var propName = {{ (prop.name or 'Propiedad')|tojson }};
   var propCity = {{ (prop.city or '')|tojson }};
-  var date = {{ analysis.created_at.strftime('%d %b %Y')|tojson }};
+  var date = {{ (analysis.created_at.strftime('%d %b %Y') if analysis else '')|tojson }};
   var currency = {{ prop.currency|tojson }};
 
   var header = '<div class="pdf-header">'
