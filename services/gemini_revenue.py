@@ -7,13 +7,13 @@ Your SOLE objective: Maximize NET REVENUE (NRevPAR + GOPPAR), NOT occupancy. Pro
 
 CORE EXPERTISE: Attribute-Based Selling (ABS), Price Elasticity of Demand, Dynamic Pricing & Yield Management, Consumer Psychology & Anchoring, Channel Mix Optimization (Direct vs OTA), Forecasting (booking pace, pickup, wash factor), Distribution economics (commission netting).
 
-CRITICAL ANTI-HALLUCINATION RULES — NON-NEGOTIABLE:
-1. ONLY use numbers, rates, occupancy percentages, and revenue figures that appear EXPLICITLY in the data provided below.
-2. NEVER invent, estimate, or assume any number that is not in the data block. If a metric is missing, write "— (dato no proporcionado)" instead of guessing.
-3. ALL monetary amounts must be in the property's currency stated in the data.
-4. If PMS/OTA report data is provided, extract EVERY number from it and use those as ground truth. They override any other assumption.
-5. Do NOT use generic industry averages as if they were this property's real numbers.
-6. Calculations you CAN do: multiply/divide provided numbers (e.g., rooms × ADR × occupancy). Do NOT invent base inputs.
+CRITICAL DATA RULES:
+1. For any metric EXPLICITLY provided in the data below: use EXACTLY that number. Never modify provided data.
+2. For any metric NOT provided: apply your deep revenue management expertise to generate realistic, actionable recommendations based on property type, location, positioning, and market context. You ARE the expert — use your knowledge.
+3. Clearly distinguish: "Based on provided data: [X]" vs "Based on expert assessment for this property type: [Y]"
+4. If PMS/OTA report data is attached, extract ALL numbers from it first — those are ground truth.
+5. ALL monetary amounts in the property's stated currency.
+6. Math you can do: rooms × ADR × occupancy%, rate × commission %, etc.
 
 OPERATING PRINCIPLES:
 1. A 100-room urban hotel is NOT the same as a 2-suite mountain villa. Adapt all logic to the specific property.
@@ -204,24 +204,34 @@ def build_property_prompt(data: dict) -> str:
 
     lines += ["", "## Current Performance (last 30 days)"]
     if perf:
-        lines += [
-            f"- Occupancy: {perf.get('occupancy_pct', 'N/A')}%",
-            f"- ADR: {fmt(perf.get('adr'))}",
-            f"- RevPAR: {fmt(perf.get('revpar'))}",
-            f"- Avg booking window: {perf.get('booking_window_days', 'N/A')} days",
-            f"- Avg length of stay: {perf.get('avg_los', 'N/A')} nights",
-            f"- Cancellation rate: {perf.get('cancellation_pct', 'N/A')}%",
-            f"- Channel mix: Direct {perf.get('channel_direct_pct', 0)}% / "
-            f"Booking.com {perf.get('channel_booking_pct', 0)}% / "
-            f"Expedia {perf.get('channel_expedia_pct', 0)}% / "
-            f"Airbnb {perf.get('channel_airbnb_pct', 0)}% / "
-            f"Corporate {perf.get('channel_corp_pct', 0)}%",
-            f"- Primary guest segment: {perf.get('guest_segment', 'N/A')}",
-            f"- Top feeder markets: {perf.get('feeder_markets', 'N/A')}",
-            f"- City average occupancy: {perf.get('city_avg_occ_pct', 'N/A')}%",
+        def pv(key, label):
+            v = perf.get(key)
+            if v is not None and v != '' and v != 0:
+                return f"- {label}: {fmt(v) if 'rate' in key.lower() or key in ('adr','revpar','total_monthly_revenue') else v}"
+            return None
+
+        metric_lines = [
+            f"- Occupancy %: {perf.get('occupancy_pct')}%" if perf.get('occupancy_pct') else None,
+            f"- ADR (Average Daily Rate): {fmt(perf.get('adr'))}" if perf.get('adr') else None,
+            f"- RevPAR: {fmt(perf.get('revpar'))}" if perf.get('revpar') else None,
+            f"- Total monthly revenue (ventas totales mes): {fmt(perf.get('total_monthly_revenue'))}" if perf.get('total_monthly_revenue') else None,
+            f"- Total nights available/month (noches disponibles): {perf.get('total_nights_available')}" if perf.get('total_nights_available') else None,
+            f"- Nights sold/month (noches vendidas): {perf.get('nights_sold')}" if perf.get('nights_sold') else None,
+            f"- Avg booking window: {perf.get('booking_window_days')} days" if perf.get('booking_window_days') else None,
+            f"- Avg LOS: {perf.get('avg_los')} nights" if perf.get('avg_los') else None,
+            f"- Cancellation rate: {perf.get('cancellation_pct')}%" if perf.get('cancellation_pct') else None,
+            f"- Channel mix: Direct {perf.get('channel_direct_pct',0)}% / Booking {perf.get('channel_booking_pct',0)}% / Expedia {perf.get('channel_expedia_pct',0)}% / Airbnb {perf.get('channel_airbnb_pct',0)}% / Corporate {perf.get('channel_corp_pct',0)}%",
+            f"- City avg occupancy: {perf.get('city_avg_occ_pct')}%" if perf.get('city_avg_occ_pct') else None,
+            f"- Guest segment: {perf.get('guest_segment')}" if perf.get('guest_segment') else None,
+            f"- Feeder markets: {perf.get('feeder_markets')}" if perf.get('feeder_markets') else None,
         ]
+        provided = [l for l in metric_lines if l]
+        if provided:
+            lines += provided
+        else:
+            lines.append("- Performance metrics: not provided — use expert knowledge for this property type and market")
     else:
-        lines.append("- No performance data provided. State all assumptions explicitly.")
+        lines.append("- No performance data provided — use your expert revenue management knowledge to generate recommendations based on property type, location, and positioning")
 
     lines += ["", "## Market & Competitive Set"]
     if market:

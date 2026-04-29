@@ -2,43 +2,36 @@
 {% block title %}Nueva Propiedad — Omni Revenue{% endblock %}
 
 {% block content %}
-<div style="max-width:580px;margin:40px auto;padding:0 24px;">
+<div style="max-width:780px;margin:0 auto;padding:24px;">
 
   <a href="{{ url_for('revenue_pro.portfolio') }}"
      style="font-size:12px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:20px;">
-    ← Volver al portafolio
+    ← Portafolio
   </a>
 
-  <div class="card">
-    <h1 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--cream);margin-bottom:4px;">
-      Nueva Propiedad
-    </h1>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:24px;">
-      Solo <strong style="color:var(--gold);">dos campos son obligatorios</strong> (★). El resto enriquece el análisis y se puede completar después.
+  <div style="margin-bottom:24px;">
+    <h1 style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:var(--cream);margin-bottom:6px;">Nueva Propiedad</h1>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;">
+      Ningún campo es obligatorio.
+      <strong style="color:var(--gold);">La IA analiza como experto con lo que tengas.</strong>
+      Entre más datos, más preciso el análisis.
     </p>
+  </div>
 
-    <form method="POST">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+    <!-- ── Identidad ── -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t">Identidad</div>
       <div class="g2">
-        <div class="field">
-          <label>Nombre de la propiedad</label>
-          <input class="fi" type="text" name="name" placeholder="ej. Hotel Las Palmas">
+        <div class="field"><label>Nombre</label>
+          <input class="fi" type="text" name="name" placeholder="Hotel Las Palmas...">
         </div>
-        <div class="field">
-          <label>Ciudad / Ubicación</label>
-          <input class="fi" type="text" name="city" placeholder="ej. Bogotá · El Dorado">
+        <div class="field"><label>Ciudad / Ubicación</label>
+          <input class="fi" type="text" name="city" placeholder="Bogotá, Medellín...">
         </div>
-        <div class="field">
-          <label class="req">Total habitaciones / unidades</label>
-          <input class="fi req-inp" type="number" name="total_rooms" min="1" required placeholder="28">
-        </div>
-        <div class="field">
-          <label class="req">Tarifa mínima del propietario</label>
-          <input class="fi req-inp" type="number" name="price_floor" min="1" required placeholder="120000">
-        </div>
-        <div class="field">
-          <label>Tipo de propiedad</label>
+        <div class="field"><label>Tipo</label>
           <select class="fi" name="property_type">
             <option value="hotel">Hotel</option>
             <option value="str">STR — Renta Corta</option>
@@ -48,8 +41,15 @@
             <option value="resort">Resort</option>
           </select>
         </div>
-        <div class="field">
-          <label>Moneda</label>
+        <div class="field"><label>Posicionamiento</label>
+          <select class="fi" name="positioning">
+            <option value="luxury">Luxury</option>
+            <option value="upscale">Upscale</option>
+            <option value="midscale" selected>Midscale</option>
+            <option value="budget">Budget / Económico</option>
+          </select>
+        </div>
+        <div class="field"><label>Moneda</label>
           <select class="fi" name="currency">
             <option value="COP">COP — Peso Colombiano</option>
             <option value="USD">USD — Dólar</option>
@@ -60,14 +60,177 @@
             <option value="ARS">ARS — Peso Argentino</option>
           </select>
         </div>
+        <div class="field"><label>Estrellas</label>
+          <select class="fi" name="star_rating">
+            {% for n in [1,2,3,4,5] %}
+            <option value="{{ n }}" {% if n==3 %}selected{% endif %}>{{ n }} estrella{% if n!=1 %}s{% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>USPs — diferenciadores</label>
+          <input class="fi" type="text" name="usp_text" placeholder="Vista al mar, check-in 24h, pet-friendly...">
+        </div>
+        <div class="field"><label>Servicios / Amenities</label>
+          <input class="fi" type="text" name="amenities" placeholder="WiFi, piscina, desayuno, parqueadero...">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Métricas de Revenue ── -->
+    <div class="card" style="margin-bottom:14px;border-color:rgba(212,168,67,0.25);">
+      <div class="card-t" style="color:var(--gold);">Métricas de Revenue — Ingresa las que tengas</div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
+
+        <div class="field">
+          <label># Habitaciones</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Total inventario</div>
+          <input class="fi" type="number" name="total_rooms" id="m-rooms" placeholder="28" min="0" oninput="liveCalc()">
+        </div>
+
+        <div class="field">
+          <label>Precio Mínimo</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Tarifa floor propietario</div>
+          <input class="fi" type="text" name="price_floor" placeholder="120,000">
+        </div>
+
+        <div class="field">
+          <label>ADR</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Tarifa promedio diaria</div>
+          <input class="fi" type="text" name="adr" id="m-adr" placeholder="150,000" oninput="liveCalc()">
+        </div>
+
+        <div class="field">
+          <label>RevPAR</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Revenue per available room</div>
+          <input class="fi" type="text" name="revpar" placeholder="82,500">
+        </div>
+
+        <div class="field">
+          <label>Ventas Total Mes</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Revenue bruto mensual</div>
+          <input class="fi" type="text" name="total_monthly_revenue" placeholder="69,300,000">
+        </div>
+
+        <div class="field">
+          <label>Noches Disponibles/Mes</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Total a vender (hab × 30)</div>
+          <input class="fi" type="text" name="total_nights_available" placeholder="840">
+        </div>
+
+        <div class="field">
+          <label>Noches Vendidas/Mes</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Hab / noches efectivamente vendidas</div>
+          <input class="fi" type="text" name="nights_sold" placeholder="462">
+        </div>
+
+        <div class="field">
+          <label>% Ocupación</label>
+          <div style="font-size:9px;color:var(--dim);margin-bottom:4px;">Porcentaje de ocupación actual</div>
+          <input class="fi" type="number" name="occupancy_pct" id="m-occ" placeholder="55" min="0" max="100" oninput="liveCalc()">
+        </div>
+
       </div>
 
-      <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:8px;border-top:1px solid var(--b2);margin-top:8px;">
-        <a href="{{ url_for('revenue_pro.portfolio') }}" class="btn-ghost" style="text-decoration:none;">Cancelar</a>
-        <button type="submit" class="btn-gold">Crear y continuar →</button>
+      <!-- Live calculator -->
+      <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--muted);" id="calc-box">
+        <strong style="color:var(--gold2);">Calculadora live:</strong>
+        <span id="calc-txt" style="margin-left:6px;">Ingresa habitaciones + ADR + ocupación para ver el revenue estimado.</span>
       </div>
-    </form>
-  </div>
+    </div>
 
+    <!-- ── Canales ── -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t">Mix de Canales (opcional)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div class="field"><label>Directo %</label><input class="fi" type="number" name="channel_direct_pct" placeholder="0" min="0" max="100"></div>
+        <div class="field"><label>Booking.com %</label><input class="fi" type="number" name="channel_booking_pct" placeholder="0" min="0" max="100"></div>
+        <div class="field"><label>Expedia %</label><input class="fi" type="number" name="channel_expedia_pct" placeholder="0" min="0" max="100"></div>
+        <div class="field"><label>Airbnb %</label><input class="fi" type="number" name="channel_airbnb_pct" placeholder="0" min="0" max="100"></div>
+        <div class="field"><label>Corporativo %</label><input class="fi" type="number" name="channel_corp_pct" placeholder="0" min="0" max="100"></div>
+        <div class="field"><label>Ocu. promedio ciudad %</label><input class="fi" type="number" name="city_avg_occ_pct" placeholder="65" min="0" max="100"></div>
+      </div>
+    </div>
+
+    <!-- ── CompSet ── -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t">Competidores (opcional)</div>
+      <div style="overflow-x:auto;margin-bottom:10px;">
+        <table style="width:100%;border-collapse:collapse;min-width:480px;">
+          <thead><tr style="background:var(--card2);">
+            <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;border-bottom:1px solid var(--b2);">Nombre</th>
+            <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold2);text-align:right;border-bottom:1px solid var(--b2);">Tarifa</th>
+            <th style="padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--b2);">Posición vs tú</th>
+            <th style="border-bottom:1px solid var(--b2);width:28px;"></th>
+          </tr></thead>
+          <tbody id="cs-body">
+            {% for i in range(3) %}
+            <tr style="border-bottom:1px solid var(--b2);">
+              <td style="padding:7px 12px;"><input class="fi" type="text" name="comp_name[]" placeholder="Competidor {{ i+1 }}" style="width:100%;"></td>
+              <td style="padding:7px 12px;"><input class="fi" type="text" name="comp_rate[]" placeholder="0" style="width:100px;color:var(--gold2);text-align:right;"></td>
+              <td style="padding:7px 12px;">
+                <select class="fi" name="comp_pos[]" style="width:110px;">
+                  <option value="superior">Superior</option>
+                  <option value="similar" selected>Similar</option>
+                  <option value="inferior">Inferior</option>
+                </select>
+              </td>
+              <td style="padding:7px 6px;"><button type="button" onclick="this.closest('tr').remove()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;">✕</button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="button" onclick="addComp()" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:1px dashed var(--dim);border-radius:6px;background:transparent;color:var(--muted);font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--dim)';this.style.color='var(--muted)'">
+        + Agregar competidor
+      </button>
+    </div>
+
+    <!-- Submit -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <a href="{{ url_for('revenue_pro.portfolio') }}" class="btn-ghost" style="text-decoration:none;">Cancelar</a>
+      <button type="submit" class="btn-gold" style="padding:12px 36px;font-size:13px;">
+        ✦ Crear y ver análisis
+      </button>
+    </div>
+
+  </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function liveCalc() {
+  var rooms = parseInt(document.getElementById('m-rooms').value) || 0;
+  var adr = parseFloat((document.getElementById('m-adr').value || '').replace(/,/g,'').replace(/\$/g,'')) || 0;
+  var occ = parseFloat(document.getElementById('m-occ').value) || 0;
+  var txt = document.getElementById('calc-txt');
+  if (!txt) return;
+  if (rooms && adr && occ) {
+    var rev = rooms * 30 * (occ/100) * adr;
+    var fmt = rev >= 1e6 ? '$'+(rev/1e6).toFixed(1)+'M' : '$'+Math.round(rev).toLocaleString('es-CO');
+    txt.innerHTML = '<strong style="color:#ede8dc">' + rooms + ' hab</strong> × '
+      + '<strong style="color:#f0cc7a">' + adr.toLocaleString('es-CO') + '</strong> ADR × '
+      + '<strong style="color:#d4a843">' + occ + '%</strong> = '
+      + '<strong style="color:#4caf78;font-size:13px;">' + fmt + '</strong> /mes estimado';
+  } else if (rooms && occ) {
+    txt.innerHTML = '<strong style="color:#ede8dc">' + rooms + ' hab</strong> × '
+      + '<strong style="color:#d4a843">' + occ + '%</strong> occ = '
+      + '<strong style="color:#f0cc7a">' + Math.round(rooms*30*occ/100) + '</strong> noches vendidas/mes';
+  } else {
+    txt.textContent = 'Ingresa habitaciones + ADR + ocupación para ver el revenue estimado.';
+  }
+}
+
+function addComp() {
+  var tb = document.getElementById('cs-body');
+  var tr = document.createElement('tr');
+  tr.style.borderBottom = '1px solid var(--b2)';
+  tr.innerHTML = '<td style="padding:7px 12px;"><input class="fi" type="text" name="comp_name[]" placeholder="Nombre" style="width:100%;"></td>'
+    + '<td style="padding:7px 12px;"><input class="fi" type="text" name="comp_rate[]" placeholder="0" style="width:100px;color:var(--gold2);text-align:right;"></td>'
+    + '<td style="padding:7px 12px;"><select class="fi" name="comp_pos[]" style="width:110px;"><option value="superior">Superior</option><option value="similar" selected>Similar</option><option value="inferior">Inferior</option></select></td>'
+    + '<td style="padding:7px 6px;"><button type="button" onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;">✕</button></td>';
+  tb.appendChild(tr);
+}
+</script>
 {% endblock %}

@@ -43,39 +43,67 @@ def portfolio():
 @login_required
 def new_property():
     if request.method == 'POST':
-        try:
-            total_rooms = int(request.form.get('total_rooms', 0))
-            price_floor = float(str(request.form.get('price_floor', 0)).replace(',', ''))
-        except (ValueError, TypeError):
-            total_rooms = 0
-            price_floor = 0
-
-        if total_rooms < 1 or price_floor < 1:
-            flash('Cantidad de habitaciones y tarifa mínima son requeridas.', 'error')
-            return render_template('revenue_pro/property_new.html')
+        total_rooms = int(_fv(request.form.get('total_rooms'), 1))
+        price_floor = _fv(request.form.get('price_floor'), 0) or 0
+        occ = _fv(request.form.get('occupancy_pct'), None)
+        adr = _fv(request.form.get('adr'), None)
 
         prop = OmniProperty(
             account_id=current_user.account_id,
-            total_rooms=total_rooms,
+            total_rooms=max(total_rooms, 1),
             price_floor=price_floor,
             name=request.form.get('name') or None,
             city=request.form.get('city') or None,
             property_type=request.form.get('property_type', 'hotel'),
             positioning=request.form.get('positioning', 'midscale'),
+            star_rating=int(_fv(request.form.get('star_rating'), 3)),
             currency=request.form.get('currency', 'COP'),
+            usp_text=request.form.get('usp_text') or None,
+            amenities=request.form.get('amenities') or None,
         )
         db.session.add(prop)
         db.session.flush()
 
+        # Standard room type
         standard = RoomType(
             property_id=prop.id, name='Standard',
-            units=total_rooms, is_base=True,
-            multiplier=1.0, pax_max=2, occupancy_pct=55
+            units=max(total_rooms, 1), is_base=True,
+            multiplier=1.0, pax_max=2,
+            occupancy_pct=occ if occ else 55,
         )
         db.session.add(standard)
+        db.session.flush()
+
+        # Performance metrics — save everything provided
+        perf = PropertyPerformance(property_id=prop.id)
+        perf.occupancy_pct       = occ
+        perf.adr                 = adr
+        perf.revpar              = _fv(request.form.get('revpar'), None)
+        perf.channel_direct_pct  = _fv(request.form.get('channel_direct_pct'), 0)
+        perf.channel_booking_pct = _fv(request.form.get('channel_booking_pct'), 0)
+        perf.channel_expedia_pct = _fv(request.form.get('channel_expedia_pct'), 0)
+        perf.channel_airbnb_pct  = _fv(request.form.get('channel_airbnb_pct'), 0)
+        perf.channel_corp_pct    = _fv(request.form.get('channel_corp_pct'), 0)
+        perf.city_avg_occ_pct    = _fv(request.form.get('city_avg_occ_pct'), None)
+        db.session.add(perf)
+
+        # CompSet
+        CompSetEntry.query.filter_by(property_id=prop.id).delete()
+        for i, cname in enumerate(request.form.getlist('comp_name[]')):
+            if not cname.strip():
+                continue
+            rates = request.form.getlist('comp_rate[]')
+            positions = request.form.getlist('comp_pos[]')
+            ce = CompSetEntry(
+                property_id=prop.id,
+                name=cname.strip(),
+                avg_rate=_fv(rates[i] if i < len(rates) else None),
+                position=positions[i] if i < len(positions) else 'similar',
+            )
+            db.session.add(ce)
+
         db.session.commit()
-        flash('Propiedad creada. Completa el perfil para un análisis más preciso.', 'success')
-        return redirect(url_for('revenue_pro.setup', property_id=prop.id, step='rooms'))
+        return redirect(url_for('revenue_pro.analysis', property_id=prop.id))
 
     return render_template('revenue_pro/property_new.html')
 
@@ -298,20 +326,23 @@ def run_analysis(property_id):
             for c in compset
         ],
         'performance': {
-            'occupancy_pct': perf.occupancy_pct if perf else None,
-            'adr': perf.adr if perf else None,
-            'revpar': perf.revpar if perf else None,
-            'booking_window_days': perf.booking_window_days if perf else None,
-            'avg_los': perf.avg_los if perf else None,
-            'cancellation_pct': perf.cancellation_pct if perf else None,
-            'channel_direct_pct': perf.channel_direct_pct if perf else 0,
-            'channel_booking_pct': perf.channel_booking_pct if perf else 0,
-            'channel_expedia_pct': perf.channel_expedia_pct if perf else 0,
-            'channel_airbnb_pct': perf.channel_airbnb_pct if perf else 0,
-            'channel_corp_pct': perf.channel_corp_pct if perf else 0,
-            'guest_segment': perf.guest_segment if perf else None,
-            'feeder_markets': perf.feeder_markets if perf else None,
-            'city_avg_occ_pct': perf.city_avg_occ_pct if perf else None,
+            'occupancy_pct':         perf.occupancy_pct if perf else None,
+            'adr':                   perf.adr if perf else None,
+            'revpar':                perf.revpar if perf else None,
+            'total_monthly_revenue': getattr(perf, 'total_monthly_revenue', None) if perf else None,
+            'total_nights_available':getattr(perf, 'total_nights_available', None) if perf else None,
+            'nights_sold':           getattr(perf, 'nights_sold', None) if perf else None,
+            'booking_window_days':   perf.booking_window_days if perf else None,
+            'avg_los':               perf.avg_los if perf else None,
+            'cancellation_pct':      perf.cancellation_pct if perf else None,
+            'channel_direct_pct':    perf.channel_direct_pct if perf else 0,
+            'channel_booking_pct':   perf.channel_booking_pct if perf else 0,
+            'channel_expedia_pct':   perf.channel_expedia_pct if perf else 0,
+            'channel_airbnb_pct':    perf.channel_airbnb_pct if perf else 0,
+            'channel_corp_pct':      perf.channel_corp_pct if perf else 0,
+            'guest_segment':         perf.guest_segment if perf else None,
+            'feeder_markets':        perf.feeder_markets if perf else None,
+            'city_avg_occ_pct':      perf.city_avg_occ_pct if perf else None,
         } if perf else {},
         'market': {
             'demand_level': market.demand_level if market else 'medium',
