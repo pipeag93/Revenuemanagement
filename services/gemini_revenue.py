@@ -214,6 +214,20 @@ def build_property_prompt(data: dict) -> str:
     else:
         lines.append("- No competitor data provided. Use market knowledge for this area and property type.")
 
+    # PMS raw data — highest value input, AI interprets any format
+    pms_data = data.get('pms_raw_data', '') or prop.get('pms_raw_data', '')
+    if pms_data and pms_data.strip():
+        lines += [
+            "",
+            "## Raw PMS / OTA Report Data (interpret and extract all relevant metrics)",
+            "The following is a direct export from the property's PMS or OTA extranet.",
+            "Extract all relevant metrics: occupancy, ADR, RevPAR, booking pace, cancellations, etc.",
+            "Use this data to make your analysis more precise and override assumptions where possible.",
+            "```",
+            pms_data.strip()[:3000],  # limit to 3000 chars
+            "```",
+        ]
+
     lines += [
         "",
         "Produce the complete 10-section OMNI-REVENUE analysis now. "

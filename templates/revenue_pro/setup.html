@@ -289,6 +289,31 @@
     </div>
     {% endif %}
 
+    <!-- ══ PMS DATA IMPORT (visible en todos los pasos) ══ -->
+    <div class="card" style="border-color:rgba(212,168,67,0.25);background:rgba(212,168,67,0.03);">
+      <div class="card-t" style="color:var(--gold);">
+        Datos del PMS — Opcional pero recomendado
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Pega aquí cualquier reporte de tu PMS, OTA extranet, o exportación de Excel.
+        Groq AI interpreta automáticamente cualquier formato: tablas, texto, números.
+        Entre más datos, mejor el análisis.
+      </p>
+      <div class="field">
+        <label>Pegar reporte PMS / OTA / Excel (cualquier formato)</label>
+        <textarea class="fi" name="pms_raw_data" rows="8"
+          placeholder="Pega aquí tu reporte... Ejemplo:
+Fecha        Occ%    ADR       RevPAR    Reservas
+01/04/2026   62%     $155,000  $96,100   18
+02/04/2026   55%     $148,000  $81,400   15
+...
+O cualquier exportación de Booking Extranet, Opera, Cloudbeds, etc.">{{ prop.pms_raw_data or '' }}</textarea>
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-top:8px;">
+        Formatos aceptados: texto plano, CSV, tablas copiadas de Excel, reportes de Booking.com, Opera, Cloudbeds, Mews, Apaleo, etc.
+      </div>
+    </div>
+
     <!-- Nav buttons -->
     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;">
       {% set si = steps.index(step) %}

@@ -149,6 +149,8 @@ def _save_rooms(prop, form):
     prop.sunny_days    = int(form.get('sunny_days') or 0) or prop.sunny_days
     prop.climate_type  = form.get('climate_type') or prop.climate_type
     prop.currency      = form.get('currency', prop.currency)
+    if form.get('pms_raw_data', '').strip():
+        prop.pms_raw_data = form.get('pms_raw_data').strip()
 
     # Room types — replace all
     names     = form.getlist('rt_name[]')
@@ -205,6 +207,10 @@ def _save_rooms(prop, form):
 
 
 def _save_performance(property_id, form):
+    from models import OmniProperty
+    prop = OmniProperty.query.get(property_id)
+    if prop and form.get('pms_raw_data', '').strip():
+        prop.pms_raw_data = form.get('pms_raw_data').strip()
     perf = PropertyPerformance.query.filter_by(property_id=property_id).first()
     if not perf:
         perf = PropertyPerformance(property_id=property_id)
@@ -277,6 +283,7 @@ def run_analysis(property_id):
             'brand_strength': prop.brand_strength, 'usp_text': prop.usp_text,
             'amenities': prop.amenities, 'extras': prop.extras,
             'sunny_days': prop.sunny_days, 'climate_type': prop.climate_type,
+            'pms_raw_data': prop.pms_raw_data,
         },
         'room_types': [
             {'name': rt.name, 'units': rt.units, 'pax_max': rt.pax_max,

@@ -63,6 +63,7 @@ class OmniProperty(db.Model):
     sunny_days     = db.Column(db.Integer, nullable=True)
     climate_type   = db.Column(db.String(50), nullable=True)
     currency       = db.Column(db.String(10), default='COP')
+    pms_raw_data   = db.Column(db.Text, nullable=True)  # Raw PMS report paste
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at     = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
