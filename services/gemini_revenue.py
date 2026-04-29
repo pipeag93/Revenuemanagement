@@ -151,7 +151,9 @@ def build_property_prompt(data: dict) -> str:
             return str(v)
 
     # PMS data goes FIRST — highest priority data source
-    pms_data = data.get('pms_raw_data', '') or prop.get('pms_raw_data', '')
+    pms_data = (prop.get('pms_raw_data', '') or
+                data.get('pms_raw_data', '') or
+                data.get('property', {}).get('pms_raw_data', '') or '')
 
     lines = [
         "═══════════════════════════════════════════════════════════",

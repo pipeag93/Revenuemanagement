@@ -610,37 +610,28 @@ window.addEventListener('load', function() {
   renderChartsForSlide();
 });
 
-// ── PDF Export ──
+// ── PDF Export — print window approach (most reliable) ──
 function downloadPDF() {
   var btn = document.getElementById('pdf-btn');
   btn.disabled = true;
-  btn.textContent = '⟳ Generando PDF...';
+  btn.textContent = '⟳ Preparando...';
 
-  // Build full report HTML for PDF
   var html = buildPDFContent();
-  var container = document.createElement('div');
-  container.innerHTML = html;
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;font-family:Georgia,serif;background:#fff;color:#1a1a1a;';
-  document.body.appendChild(container);
-
-  var script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-  script.onload = function() {
-    var opt = {
-      margin: [12, 12, 12, 12],
-      filename: '{{ (prop.name or "OMNI-REVENUE") | replace(" ", "_") }}_Analysis.pdf',
-      image: { type:'jpeg', quality:0.95 },
-      html2canvas: { scale:2, useCORS:true, background:'#ffffff' },
-      jsPDF: { unit:'mm', format:'a4', orientation:'portrait' },
-      pagebreak: { mode:['avoid-all','css'], before:'.pdf-section' }
-    };
-    html2pdf().set(opt).from(container).save().then(function() {
-      document.body.removeChild(container);
-      btn.disabled = false;
-      btn.textContent = '⬇ Descargar PDF';
-    });
-  };
-  document.body.appendChild(script);
+  var win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) {
+    alert('Permite ventanas emergentes para descargar el PDF.');
+    btn.disabled = false;
+    btn.textContent = '⬇ Descargar PDF';
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(function() {
+    win.print();
+    btn.disabled = false;
+    btn.textContent = '⬇ Descargar PDF';
+  }, 800);
 }
 
 function buildPDFContent() {
@@ -663,29 +654,33 @@ function buildPDFContent() {
   {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
 
   var css = '<style>'
+    + '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
     + '*{box-sizing:border-box;margin:0;padding:0}'
-    + 'body{font-family:Georgia,serif;color:#1a1a1a;background:#fff;font-size:11.5px;line-height:1.75}'
-    + '.pdf-header{background:#0e1520;color:#f0cc7a;padding:24px 32px}'
-    + '.pdf-header h1{font-size:24px;font-weight:700;margin-bottom:4px;color:#e2c99a}'
-    + '.pdf-header p{font-size:11px;color:#9a9080;margin-top:3px}'
-    + '.pdf-kpis{background:#f5f0e8;padding:14px 32px;display:flex;gap:0;border-bottom:3px solid #d4a843}'
-    + '.pdf-kpi{flex:1;text-align:center;padding:0 8px;border-right:1px solid #ddd}'
+    + 'body{font-family:Georgia,serif;color:#1a1a1a;background:#fff;font-size:11px;line-height:1.8}'
+    + '.pdf-header{background:#0e1520 !important;color:#e2c99a;padding:24px 32px;-webkit-print-color-adjust:exact}'
+    + '.pdf-header h1{font-size:22px;font-weight:700;margin-bottom:6px;color:#e2c99a}'
+    + '.pdf-header p{font-size:10px;color:#9a9080;margin-top:2px}'
+    + '.pdf-kpis{background:#f5f0e8 !important;padding:12px 32px;display:flex;gap:0;border-bottom:3px solid #d4a843;-webkit-print-color-adjust:exact}'
+    + '.pdf-kpi{flex:1;text-align:center;padding:8px;border-right:1px solid #ddd}'
     + '.pdf-kpi:last-child{border-right:none}'
-    + '.pdf-kpi-l{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:3px}'
-    + '.pdf-kpi-v{font-size:18px;font-weight:700;color:#0e1520}'
-    + '.pdf-section{padding:18px 32px;border-bottom:1px solid #e8e0d0}'
-    + '.pdf-section-num{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#8a6820;margin-bottom:4px}'
-    + '.pdf-section-title{font-size:14px;font-weight:700;color:#0e1520;border-left:3px solid #d4a843;padding-left:10px;margin-bottom:10px}'
-    + '.pdf-text{font-size:11px;color:#2a2a2a;line-height:1.8;white-space:pre-wrap;word-wrap:break-word}'
-    + '.pdf-text h2,.pdf-text h3{font-size:12px;font-weight:700;color:#0e1520;margin:10px 0 5px;border-bottom:1px solid #eee;padding-bottom:3px}'
-    + '.pdf-text table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}'
-    + '.pdf-text th{background:#0e1520;color:#d4a843;padding:5px 8px;text-align:left;font-weight:700}'
-    + '.pdf-text td{padding:5px 8px;border-bottom:1px solid #eee;color:#333}'
-    + '.pdf-text tr:nth-child(even) td{background:#faf7f2}'
+    + '.pdf-kpi-l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#777;margin-bottom:3px}'
+    + '.pdf-kpi-v{font-size:16px;font-weight:700;color:#0e1520}'
+    + '.pdf-section{padding:16px 32px;border-bottom:1px solid #ddd;page-break-inside:avoid}'
+    + '.pdf-section-title{font-size:13px;font-weight:700;color:#0e1520;border-left:4px solid #d4a843;padding-left:10px;margin-bottom:10px}'
+    + '.pdf-text{font-size:10.5px;color:#222;line-height:1.8}'
+    + '.pdf-text h2{font-size:12px;font-weight:700;color:#0e1520;margin:12px 0 5px;padding-bottom:3px;border-bottom:1px solid #eee}'
+    + '.pdf-text h3{font-size:11px;font-weight:700;color:#333;margin:8px 0 4px}'
+    + '.pdf-text p{margin-bottom:8px}'
+    + '.pdf-text table{width:100%;border-collapse:collapse;margin:10px 0;font-size:10px}'
+    + '.pdf-text th{background:#0e1520 !important;color:#d4a843;padding:6px 8px;text-align:left;font-weight:700;-webkit-print-color-adjust:exact}'
+    + '.pdf-text td{padding:6px 8px;border-bottom:1px solid #eee;color:#333}'
+    + '.pdf-text tr:nth-child(even) td{background:#fafaf8}'
     + '.pdf-text strong{color:#0e1520;font-weight:700}'
-    + '.pdf-text ul,.pdf-text ol{padding-left:16px;margin:6px 0}'
-    + '.pdf-text li{margin-bottom:3px}'
-    + '.pdf-footer{text-align:center;padding:14px 32px;font-size:9px;color:#aaa;border-top:2px solid #d4a843;background:#faf7f2}'
+    + '.pdf-text ul,.pdf-text ol{padding-left:18px;margin:6px 0}'
+    + '.pdf-text li{margin-bottom:4px}'
+    + '.pdf-text blockquote{border-left:3px solid #d4a843;padding-left:10px;color:#555;margin:8px 0}'
+    + '.pdf-footer{text-align:center;padding:12px 32px;font-size:9px;color:#999;border-top:2px solid #d4a843;background:#faf7f2 !important;-webkit-print-color-adjust:exact}'
+    + '.no-print{display:none}'
     + '</style>';
 
   var propName = {{ (prop.name or 'Propiedad')|tojson }};
@@ -708,37 +703,40 @@ function buildPDFContent() {
     + '</div>';
 
   var body = '';
-  var nums = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
-  sections.forEach(function(s, i) {
+  sections.forEach(function(s) {
     var title = s[0];
-    var raw = s[1] || '';
-    // Convert basic markdown to HTML for PDF
-    var html = raw
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/^#{1,2}\s+(.+)$/gm, '<h2>$1</h2>')
-      .replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>')
-      .replace(/^\|\s*(.+?)\s*\|/gm, function(m) {
-        var cells = m.split('|').filter(function(c){return c.trim();});
-        return '<tr>' + cells.map(function(c){return '<td>'+c.trim()+'</td>';}).join('') + '</tr>';
-      })
-      .replace(/(<tr>.*<\/tr>\n?)+/gs, function(t){ return '<table>'+t+'</table>'; })
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/gs, function(t){ return '<ul>'+t+'</ul>'; })
-      .replace(/\n/g, '<br>');
-
+    var raw = s[1] || '— Sección no generada';
+    // Use marked.js if available, otherwise basic conversion
+    var htmlContent;
+    if (typeof marked !== 'undefined') {
+      try { htmlContent = marked.parse(raw); } catch(e) { htmlContent = '<pre>' + raw + '</pre>'; }
+    } else {
+      htmlContent = raw
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+        .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+        .replace(/^- (.+)$/gm,'<li>$1</li>')
+        .replace(/\n/g,'<br>');
+    }
     body += '<div class="pdf-section">'
       + '<div class="pdf-section-title">' + title + '</div>'
-      + '<div class="pdf-text">' + html + '</div>'
+      + '<div class="pdf-text">' + htmlContent + '</div>'
       + '</div>';
   });
 
   var footer = '<div class="pdf-footer">'
     + 'Designed by <strong style="color:#8a6820;">Felipe Acevedo</strong> &nbsp;·&nbsp; '
-    + 'Omni Revenue Intelligence Platform &nbsp;·&nbsp; ' + date
+    + 'Omni Revenue Intelligence Platform &nbsp;·&nbsp; ' + (date || '')
+    + '</div>';
+
+  var printBtn = '<div class="no-print" style="position:fixed;top:16px;right:16px;z-index:999;display:flex;gap:8px;">'
+    + '<button onclick="window.print()" style="background:#d4a843;color:#0e1520;border:none;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px;">Imprimir / Guardar PDF</button>'
+    + '<button onclick="window.close()" style="background:#eee;color:#333;border:none;padding:10px 16px;font-size:13px;cursor:pointer;border-radius:6px;">Cerrar</button>'
     + '</div>';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + css + '</head><body>'
-    + header + kpis + body + footer + '</body></html>';
+    + printBtn + header + kpis + body + footer + '</body></html>';
 }
 </script>
 {% endblock %}
