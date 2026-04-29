@@ -193,7 +193,8 @@ function runAnalysis() {
 
   fetch('{{ url_for("revenue_pro.run_analysis", property_id=prop.id) }}', {
     method: 'POST',
-    headers: headers
+    headers: headers,
+    credentials: 'include'
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {

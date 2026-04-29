@@ -21,6 +21,11 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['WTF_CSRF_ENABLED']            = True
     app.config['GEMINI_API_KEY']              = os.environ.get('GEMINI_API_KEY', '')
+    app.config['SESSION_COOKIE_SECURE']       = False
+    app.config['SESSION_COOKIE_SAMESITE']     = 'Lax'
+    app.config['SESSION_COOKIE_HTTPONLY']     = True
+    app.config['REMEMBER_COOKIE_SECURE']      = False
+    app.config['REMEMBER_COOKIE_SAMESITE']    = 'Lax'
 
     db.init_app(app)
     csrf.init_app(app)
