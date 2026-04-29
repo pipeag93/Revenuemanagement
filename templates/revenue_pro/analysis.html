@@ -644,83 +644,101 @@ function downloadPDF() {
 }
 
 function buildPDFContent() {
+  // Raw analysis data passed directly from server — never empty
   var sections = [
-    ['section_dna', 'I — Property DNA Profile'],
-    ['section_diagnosis', 'II — Diagnóstico & Issues'],
-    ['section_forecast', 'III — Demand Forecast'],
-    ['section_matrix', 'IV — Dynamic Pricing Matrix'],
-    ['section_rates', 'V — Rate Plan Architecture'],
-    ['section_restrictions', 'VI — Inventory Restrictions'],
-    ['section_channels', 'VII — Channel Strategy & Ads'],
-    ['section_upsell', 'VIII — Revenue Opportunities'],
-    ['section_action', 'IX — Action Plan'],
-    ['section_kpis', 'X — KPIs to Monitor']
+    ['I — Property DNA Profile',     {{ (analysis['section_dna'] or '')|tojson }}],
+    ['II — Diagnóstico & Issues',    {{ (analysis['section_diagnosis'] or '')|tojson }}],
+    ['III — Demand Forecast',        {{ (analysis['section_forecast'] or '')|tojson }}],
+    ['IV — Dynamic Pricing Matrix',  {{ (analysis['section_matrix'] or '')|tojson }}],
+    ['V — Rate Plan Architecture',   {{ (analysis['section_rates'] or '')|tojson }}],
+    ['VI — Inventory Restrictions',  {{ (analysis['section_restrictions'] or '')|tojson }}],
+    ['VII — Channel Strategy & Ads', {{ (analysis['section_channels'] or '')|tojson }}],
+    ['VIII — Revenue Opportunities', {{ (analysis['section_upsell'] or '')|tojson }}],
+    ['IX — Action Plan',             {{ (analysis['section_action'] or '')|tojson }}],
+    ['X — KPIs to Monitor',          {{ (analysis['section_kpis'] or '')|tojson }}]
   ];
-
-  var css = '<style>'
-    + 'body{font-family:Georgia,serif;color:#1a1a1a;background:#fff;font-size:12px;line-height:1.7}'
-    + '.pdf-header{background:#0e1520;color:#f0cc7a;padding:28px 32px;margin-bottom:0}'
-    + '.pdf-header h1{font-size:26px;font-weight:700;margin:0 0 4px}'
-    + '.pdf-header p{font-size:12px;color:#b8ae98;margin:0}'
-    + '.pdf-kpis{background:#f8f6f0;padding:16px 32px;display:flex;gap:16px;border-bottom:2px solid #d4a843}'
-    + '.pdf-kpi{flex:1;text-align:center}'
-    + '.pdf-kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:4px}'
-    + '.pdf-kpi-v{font-size:20px;font-weight:700;color:#0e1520}'
-    + '.pdf-section{padding:20px 32px;border-bottom:1px solid #eee;page-break-inside:avoid}'
-    + '.pdf-section-title{font-size:15px;font-weight:700;color:#0e1520;border-left:4px solid #d4a843;padding-left:10px;margin-bottom:12px}'
-    + '.pdf-content{font-size:11px;color:#333;line-height:1.8;white-space:pre-wrap}'
-    + '.pdf-content h2{font-size:13px;font-weight:700;color:#0e1520;margin:12px 0 6px}'
-    + '.pdf-content h3{font-size:12px;font-weight:700;color:#333;margin:8px 0 4px}'
-    + '.pdf-content table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}'
-    + '.pdf-content th{background:#0e1520;color:#f0cc7a;padding:6px 8px;text-align:left;font-size:9px}'
-    + '.pdf-content td{padding:5px 8px;border-bottom:1px solid #eee}'
-    + '.pdf-content tr:nth-child(even) td{background:#f9f7f2}'
-    + '.pdf-content strong{color:#0e1520}'
-    + '.pdf-footer{text-align:center;padding:16px;font-size:9px;color:#999;border-top:1px solid #eee}'
-    + '</style>';
-
-  var propName = '{{ prop.name or "Propiedad" }}';
-  var propCity = '{{ prop.city or "" }}';
-  var currency = '{{ prop.currency }}';
-  var date = '{{ analysis.created_at.strftime("%d %b %Y") if analysis else "" }}';
 
   {% set perf = prop.performance %}
   {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
   {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
 
+  var css = '<style>'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:Georgia,serif;color:#1a1a1a;background:#fff;font-size:11.5px;line-height:1.75}'
+    + '.pdf-header{background:#0e1520;color:#f0cc7a;padding:24px 32px}'
+    + '.pdf-header h1{font-size:24px;font-weight:700;margin-bottom:4px;color:#e2c99a}'
+    + '.pdf-header p{font-size:11px;color:#9a9080;margin-top:3px}'
+    + '.pdf-kpis{background:#f5f0e8;padding:14px 32px;display:flex;gap:0;border-bottom:3px solid #d4a843}'
+    + '.pdf-kpi{flex:1;text-align:center;padding:0 8px;border-right:1px solid #ddd}'
+    + '.pdf-kpi:last-child{border-right:none}'
+    + '.pdf-kpi-l{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:3px}'
+    + '.pdf-kpi-v{font-size:18px;font-weight:700;color:#0e1520}'
+    + '.pdf-section{padding:18px 32px;border-bottom:1px solid #e8e0d0}'
+    + '.pdf-section-num{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#8a6820;margin-bottom:4px}'
+    + '.pdf-section-title{font-size:14px;font-weight:700;color:#0e1520;border-left:3px solid #d4a843;padding-left:10px;margin-bottom:10px}'
+    + '.pdf-text{font-size:11px;color:#2a2a2a;line-height:1.8;white-space:pre-wrap;word-wrap:break-word}'
+    + '.pdf-text h2,.pdf-text h3{font-size:12px;font-weight:700;color:#0e1520;margin:10px 0 5px;border-bottom:1px solid #eee;padding-bottom:3px}'
+    + '.pdf-text table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}'
+    + '.pdf-text th{background:#0e1520;color:#d4a843;padding:5px 8px;text-align:left;font-weight:700}'
+    + '.pdf-text td{padding:5px 8px;border-bottom:1px solid #eee;color:#333}'
+    + '.pdf-text tr:nth-child(even) td{background:#faf7f2}'
+    + '.pdf-text strong{color:#0e1520;font-weight:700}'
+    + '.pdf-text ul,.pdf-text ol{padding-left:16px;margin:6px 0}'
+    + '.pdf-text li{margin-bottom:3px}'
+    + '.pdf-footer{text-align:center;padding:14px 32px;font-size:9px;color:#aaa;border-top:2px solid #d4a843;background:#faf7f2}'
+    + '</style>';
+
+  var propName = {{ (prop.name or 'Propiedad')|tojson }};
+  var propCity = {{ (prop.city or '')|tojson }};
+  var date = {{ analysis.created_at.strftime('%d %b %Y')|tojson }};
+  var currency = {{ prop.currency|tojson }};
+
   var header = '<div class="pdf-header">'
     + '<h1>OMNI-REVENUE Analysis</h1>'
-    + '<p>' + propName + (propCity ? ' · ' + propCity : '') + ' · ' + currency + ' · ' + date + '</p>'
-    + '<p style="margin-top:6px;font-size:10px;color:#8a6820;">Designed by Felipe Acevedo · Powered by Omni Revenue Intelligence Platform</p>'
+    + '<p>' + propName + (propCity ? ' · ' + propCity : '') + '</p>'
+    + '<p>' + currency + ' · Generado: ' + date + ' · Powered by Omni Revenue</p>'
     + '</div>';
 
   var kpis = '<div class="pdf-kpis">'
-    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Total Hab.</div><div class="pdf-kpi-v">{{ prop.total_rooms }}</div></div>'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Habitaciones</div><div class="pdf-kpi-v">{{ prop.total_rooms }}</div></div>'
     + '<div class="pdf-kpi"><div class="pdf-kpi-l">Ocupación</div><div class="pdf-kpi-v">{{ occ|int }}%</div></div>'
     + '<div class="pdf-kpi"><div class="pdf-kpi-l">ADR</div><div class="pdf-kpi-v">{{ '{:,.0f}'.format(adr|round|int) }}</div></div>'
-    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Posicionamiento</div><div class="pdf-kpi-v">{{ prop.positioning|title }}</div></div>'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Tipo</div><div class="pdf-kpi-v">{{ prop.positioning|title }}</div></div>'
     + '<div class="pdf-kpi"><div class="pdf-kpi-l">Moneda</div><div class="pdf-kpi-v">' + currency + '</div></div>'
     + '</div>';
 
   var body = '';
-  sections.forEach(function(s) {
-    var field = s[0];
-    var title = s[1];
-    var el = document.getElementById('md-' + field.replace('section_',''));
-    var content = el ? (el.innerHTML || el.textContent || '') : '';
-    if (!content.trim()) {
-      var rawEl = document.getElementById('rendered-' + field);
-      content = rawEl ? (rawEl.innerHTML || rawEl.textContent || '') : '';
-    }
+  var nums = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+  sections.forEach(function(s, i) {
+    var title = s[0];
+    var raw = s[1] || '';
+    // Convert basic markdown to HTML for PDF
+    var html = raw
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^#{1,2}\s+(.+)$/gm, '<h2>$1</h2>')
+      .replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>')
+      .replace(/^\|\s*(.+?)\s*\|/gm, function(m) {
+        var cells = m.split('|').filter(function(c){return c.trim();});
+        return '<tr>' + cells.map(function(c){return '<td>'+c.trim()+'</td>';}).join('') + '</tr>';
+      })
+      .replace(/(<tr>.*<\/tr>\n?)+/gs, function(t){ return '<table>'+t+'</table>'; })
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/gs, function(t){ return '<ul>'+t+'</ul>'; })
+      .replace(/\n/g, '<br>');
+
     body += '<div class="pdf-section">'
       + '<div class="pdf-section-title">' + title + '</div>'
-      + '<div class="pdf-content">' + content + '</div>'
+      + '<div class="pdf-text">' + html + '</div>'
       + '</div>';
   });
 
-  var footer = '<div class="pdf-footer">Generado por Omni Revenue Intelligence Platform · Designed by Felipe Acevedo · ' + date + '</div>';
+  var footer = '<div class="pdf-footer">'
+    + 'Designed by <strong style="color:#8a6820;">Felipe Acevedo</strong> &nbsp;·&nbsp; '
+    + 'Omni Revenue Intelligence Platform &nbsp;·&nbsp; ' + date
+    + '</div>';
 
-  return css + '<body>' + header + kpis + body + footer + '</body>';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + css + '</head><body>'
+    + header + kpis + body + footer + '</body></html>';
 }
 </script>
 {% endblock %}
