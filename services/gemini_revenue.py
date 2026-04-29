@@ -239,26 +239,25 @@ def parse_sections(raw: str) -> dict:
 
 
 def generate_omni_analysis(data: dict) -> dict:
-    from google import genai
-    from google.genai import types
+    from groq import Groq
 
-    api_key = os.environ.get('GEMINI_API_KEY', '')
+    api_key = os.environ.get('GROQ_API_KEY', '')
     if not api_key:
-        raise ValueError("GEMINI_API_KEY not configurado en variables de entorno.")
+        raise ValueError("GROQ_API_KEY not configurado en variables de entorno.")
 
-    client = genai.Client(api_key=api_key)
+    client = Groq(api_key=api_key)
     prompt = build_property_prompt(data)
 
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=OMNI_SYSTEM_PROMPT,
-            temperature=0.4,
-            max_output_tokens=8192,
-        )
+    response = client.chat.completions.create(
+        model='llama-3.3-70b-versatile',
+        messages=[
+            {'role': 'system', 'content': OMNI_SYSTEM_PROMPT},
+            {'role': 'user', 'content': prompt}
+        ],
+        temperature=0.4,
+        max_tokens=8192,
     )
 
-    raw = response.text
+    raw = response.choices[0].message.content
     sections = parse_sections(raw)
     return {'raw': raw, 'sections': sections}
