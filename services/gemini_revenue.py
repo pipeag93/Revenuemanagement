@@ -7,13 +7,21 @@ Your SOLE objective: Maximize NET REVENUE (NRevPAR + GOPPAR), NOT occupancy. Pro
 
 CORE EXPERTISE: Attribute-Based Selling (ABS), Price Elasticity of Demand, Dynamic Pricing & Yield Management, Consumer Psychology & Anchoring, Channel Mix Optimization (Direct vs OTA), Forecasting (booking pace, pickup, wash factor), Distribution economics (commission netting).
 
+CRITICAL ANTI-HALLUCINATION RULES — NON-NEGOTIABLE:
+1. ONLY use numbers, rates, occupancy percentages, and revenue figures that appear EXPLICITLY in the data provided below.
+2. NEVER invent, estimate, or assume any number that is not in the data block. If a metric is missing, write "— (dato no proporcionado)" instead of guessing.
+3. ALL monetary amounts must be in the property's currency stated in the data.
+4. If PMS/OTA report data is provided, extract EVERY number from it and use those as ground truth. They override any other assumption.
+5. Do NOT use generic industry averages as if they were this property's real numbers.
+6. Calculations you CAN do: multiply/divide provided numbers (e.g., rooms × ADR × occupancy). Do NOT invent base inputs.
+
 OPERATING PRINCIPLES:
 1. A 100-room urban hotel is NOT the same as a 2-suite mountain villa. Adapt all logic to the specific property.
 2. Scarcity + Perceived Value = Pricing power.
 3. Luxury never discounts — it adds value.
 4. Budget competes on price visibility + review velocity.
-5. Every recommendation MUST be ACTIONABLE with specific numbers, not vague advice.
-6. If data is missing, state assumptions explicitly before recommending.
+5. Every recommendation MUST use ONLY numbers from the provided data. Never fill in missing data with guesses.
+6. If critical data is missing, state explicitly: "Dato no proporcionado — se requiere [metric] para calcular esto."
 
 DECISION LOGIC:
 - IF demand HIGH AND occupancy rising fast: Raise rates aggressively (+15% to +50%), apply MinLOS 2-3 nights, close cheapest rate plans
@@ -142,8 +150,29 @@ def build_property_prompt(data: dict) -> str:
         except (TypeError, ValueError):
             return str(v)
 
+    # PMS data goes FIRST — highest priority data source
+    pms_data = data.get('pms_raw_data', '') or prop.get('pms_raw_data', '')
+
     lines = [
-        "PROPERTY DATA BLOCK — Analyze this property and produce the complete OMNI-REVENUE strategy with all 10 sections.\n",
+        "═══════════════════════════════════════════════════════════",
+        "PROPERTY DATA BLOCK — STRICT DATA-ONLY ANALYSIS",
+        "RULE: Use ONLY the numbers below. Never invent missing data.",
+        "═══════════════════════════════════════════════════════════\n",
+    ]
+
+    if pms_data and pms_data.strip():
+        lines += [
+            "▶▶▶ PRIORITY DATA SOURCE — PMS / OTA REPORT (use these numbers first) ◀◀◀",
+            "The following data was exported directly from the property's PMS or OTA system.",
+            "EXTRACT ALL NUMBERS: occupancy %, ADR, RevPAR, booking pace, cancellations,",
+            "channel mix, lead times, LOS, revenue totals. USE THEM EXACTLY as provided.",
+            "```",
+            pms_data.strip()[:4000],
+            "```",
+            "▶▶▶ END OF PMS DATA ◀◀◀\n",
+        ]
+
+    lines += [
         "## Property DNA",
         f"- Name: {prop.get('name', 'N/A')}",
         f"- Location: {prop.get('city', 'N/A')}",
@@ -214,25 +243,26 @@ def build_property_prompt(data: dict) -> str:
     else:
         lines.append("- No competitor data provided. Use market knowledge for this area and property type.")
 
-    # PMS raw data — highest value input, AI interprets any format
-    pms_data = data.get('pms_raw_data', '') or prop.get('pms_raw_data', '')
-    if pms_data and pms_data.strip():
-        lines += [
-            "",
-            "## Raw PMS / OTA Report Data (interpret and extract all relevant metrics)",
-            "The following is a direct export from the property's PMS or OTA extranet.",
-            "Extract all relevant metrics: occupancy, ADR, RevPAR, booking pace, cancellations, etc.",
-            "Use this data to make your analysis more precise and override assumptions where possible.",
-            "```",
-            pms_data.strip()[:3000],  # limit to 3000 chars
-            "```",
-        ]
+    # Data availability summary
+    has_perf = bool(data.get('performance') and data['performance'].get('adr'))
+    has_market = bool(data.get('market') and data['market'].get('market_avg_rate'))
+    has_compset = bool(data.get('compset'))
+    has_pms = bool(pms_data and pms_data.strip())
 
     lines += [
         "",
-        "Produce the complete 10-section OMNI-REVENUE analysis now. "
-        f"All monetary amounts MUST be in {currency}. "
-        "Be specific with numbers. No vague advice."
+        "═══════════════════════════════════════════════════════════",
+        "DATA AVAILABILITY SUMMARY:",
+        f"- PMS/OTA report attached: {'YES — use these numbers as primary source' if has_pms else 'NO — only use the structured data above'}",
+        f"- Performance metrics provided: {'YES' if has_perf else 'NO — do NOT invent occupancy/ADR/RevPAR'}",
+        f"- Market data provided: {'YES' if has_market else 'NO — do NOT invent market averages'}",
+        f"- Competitor data provided: {'YES' if has_compset else 'NO — acknowledge missing and skip competitor comparison'}",
+        "═══════════════════════════════════════════════════════════",
+        "",
+        "NOW produce the complete 10-section OMNI-REVENUE analysis.",
+        f"CURRENCY: All amounts in {currency}.",
+        "RULE: Only use numbers explicitly provided above. Write '— dato no proporcionado' for any missing metric.",
+        "DO NOT hallucinate or estimate numbers not in the data."
     ]
 
     return "\n".join(lines)
