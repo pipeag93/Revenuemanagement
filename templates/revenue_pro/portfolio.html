@@ -6,23 +6,37 @@
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
     <div>
-      <h1 style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:var(--cream);">Mis Propiedades</h1>
+      <h1 style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:var(--cream);">
+        <span class="es-text">Mis Propiedades</span>
+        <span class="en-text">My Properties</span>
+      </h1>
       <p style="font-size:12px;color:var(--muted);margin-top:4px;">
-        {{ properties|length }} propiedad{% if properties|length != 1 %}es{% endif %} registrada{% if properties|length != 1 %}s{% endif %}
+        {{ properties|length }}
+        <span class="es-text">propiedad{% if properties|length != 1 %}es{% endif %} registrada{% if properties|length != 1 %}s{% endif %}</span>
+        <span class="en-text">propert{% if properties|length != 1 %}ies{% else %}y{% endif %} registered</span>
       </p>
     </div>
     {% if current_user.role in ['owner', 'admin'] %}
     <a href="{{ url_for('revenue_pro.new_property') }}" class="btn-gold" style="text-decoration:none;">
-      + Nueva Propiedad
+      + <span class="es-text">Nueva Propiedad</span><span class="en-text">New Property</span>
     </a>
     {% endif %}
   </div>
 
   {% if not properties %}
   <div style="text-align:center;padding:64px 24px;border:1px dashed var(--dim);border-radius:12px;">
-    <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--muted);margin-bottom:10px;">Sin propiedades aún</div>
-    <p style="font-size:13px;color:var(--dim);margin-bottom:24px;">Crea tu primera propiedad para comenzar el análisis de revenue.</p>
-    <a href="{{ url_for('revenue_pro.new_property') }}" class="btn-gold" style="text-decoration:none;">Crear primera propiedad</a>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--muted);margin-bottom:10px;">
+      <span class="es-text">Sin propiedades aún</span>
+      <span class="en-text">No properties yet</span>
+    </div>
+    <p style="font-size:13px;color:var(--dim);margin-bottom:24px;">
+      <span class="es-text">Crea tu primera propiedad para comenzar el análisis de revenue.</span>
+      <span class="en-text">Create your first property to start the revenue analysis.</span>
+    </p>
+    <a href="{{ url_for('revenue_pro.new_property') }}" class="btn-gold" style="text-decoration:none;">
+      <span class="es-text">Crear primera propiedad</span>
+      <span class="en-text">Create first property</span>
+    </a>
   </div>
 
   {% else %}
@@ -53,11 +67,11 @@
           </div>
         </div>
         <div style="background:var(--card2);border-radius:6px;padding:10px;text-align:center;">
-          <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Tipo</div>
+          <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;"><span class="es-text">Tipo</span><span class="en-text">Type</span></div>
           <div style="font-size:12px;font-weight:600;color:var(--cream);">{{ prop.positioning|title }}</div>
         </div>
         <div style="background:var(--card2);border-radius:6px;padding:10px;text-align:center;">
-          <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Análisis</div>
+          <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;"><span class="es-text">Análisis</span><span class="en-text">Analysis</span></div>
           <div style="font-size:14px;font-weight:700;color:{% if last %}var(--green){% else %}var(--dim){% endif %};">
             {% if last %}✓{% else %}—{% endif %}
           </div>
@@ -66,22 +80,29 @@
 
       {% if last %}
       <div style="font-size:10px;color:var(--dim);margin-bottom:12px;">
-        Último análisis: {{ last.created_at.strftime('%d %b %Y %H:%M') }}
+        <span class="es-text">Último análisis:</span>
+        <span class="en-text">Last analysis:</span>
+        {{ last.created_at.strftime('%d %b %Y %H:%M') }}
       </div>
       {% endif %}
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a href="{{ url_for('revenue_pro.analysis', property_id=prop.id) }}"
            class="btn-gold" style="text-decoration:none;flex:1;justify-content:center;font-size:11px;padding:8px;">
-          {% if last %}Ver Análisis{% else %}Iniciar Análisis{% endif %}
+          {% if last %}
+            <span class="es-text">Ver Análisis</span><span class="en-text">View Analysis</span>
+          {% else %}
+            <span class="es-text">Iniciar Análisis</span><span class="en-text">Start Analysis</span>
+          {% endif %}
         </a>
         <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}"
            class="btn-ghost" style="text-decoration:none;font-size:11px;padding:8px 14px;">
-          Editar
+          <span class="es-text">Editar</span><span class="en-text">Edit</span>
         </a>
         {% if current_user.role in ['owner','admin'] %}
         <a href="{{ url_for('revenue_pro.invite_owner', property_id=prop.id) }}"
-           class="btn-ghost" style="text-decoration:none;font-size:11px;padding:8px 12px;" title="Dar acceso al propietario">
+           class="btn-ghost" style="text-decoration:none;font-size:11px;padding:8px 12px;"
+           title="Dar acceso al propietario / Give owner access">
           👤
         </a>
         {% endif %}
