@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <style>
 /* ── Slides ── */
@@ -46,19 +47,40 @@
 .slide-title { font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--cream);margin:4px 0; }
 .slide-sub { font-size:12px;color:#8a90a0; }
 
-/* ── Markdown content ── */
-.md-body { font-size:13px;color:#c0c8d8;line-height:1.9; }
-.md-body h1,.md-body h2 { font-family:'Playfair Display',serif;color:var(--gold2);font-size:16px;font-weight:600;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(212,168,67,0.15); }
-.md-body h3 { color:var(--cream);font-size:14px;font-weight:600;margin:12px 0 6px; }
-.md-body p { margin-bottom:10px; }
-.md-body strong { color:var(--cream);font-weight:700; }
-.md-body ul,.md-body ol { margin:8px 0 8px 20px; }
-.md-body li { margin-bottom:6px; }
-.md-body table { width:100%;border-collapse:collapse;margin:14px 0;font-size:12px; }
-.md-body th { background:rgba(212,168,67,0.15);color:#f0cc7a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:10px 14px;text-align:left;border:1px solid rgba(212,168,67,0.2); }
-.md-body td { padding:10px 14px;border:1px solid rgba(255,255,255,0.07);color:#dde3f0;vertical-align:top; }
-.md-body tr:hover td { background:rgba(212,168,67,0.04); }
-.md-body code { background:rgba(212,168,67,0.1);color:var(--gold2);padding:2px 6px;border-radius:4px;font-size:11px; }
+/* ── Markdown content — Enhanced ── */
+.md-body { font-size:13.5px;color:#d0d8e8;line-height:2;font-family:'DM Sans',sans-serif; }
+.md-body h1 { font-family:'Playfair Display',serif;color:var(--gold2);font-size:20px;font-weight:700;margin:20px 0 10px;padding-bottom:8px;border-bottom:2px solid rgba(212,168,67,0.2); }
+.md-body h2 { font-family:'Playfair Display',serif;color:var(--gold2);font-size:16px;font-weight:600;margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(212,168,67,0.15); }
+.md-body h3 { color:var(--cream);font-size:14px;font-weight:700;margin:14px 0 6px;letter-spacing:.2px; }
+.md-body p { margin-bottom:12px; }
+.md-body strong { color:#ffffff;font-weight:700;background:rgba(212,168,67,0.08);padding:1px 4px;border-radius:3px; }
+.md-body ul { margin:10px 0 10px 4px;list-style:none; }
+.md-body ul li { padding:6px 0 6px 20px;border-bottom:1px solid rgba(255,255,255,0.04);position:relative;color:#d0d8e8; }
+.md-body ul li::before { content:'›';position:absolute;left:4px;color:var(--gold);font-weight:700; }
+.md-body ol { margin:10px 0 10px 20px; }
+.md-body ol li { padding:5px 0;color:#d0d8e8; }
+
+/* Tables — visual and clear */
+.md-body table { width:100%;border-collapse:collapse;margin:16px 0;font-size:12.5px;border-radius:8px;overflow:hidden; }
+.md-body thead tr { background:linear-gradient(135deg,rgba(212,168,67,0.2),rgba(212,168,67,0.1)); }
+.md-body th { color:#f0cc7a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;padding:12px 14px;text-align:left;border-bottom:2px solid rgba(212,168,67,0.3); }
+.md-body tbody tr { border-bottom:1px solid rgba(255,255,255,0.05);transition:background .15s; }
+.md-body tbody tr:hover { background:rgba(212,168,67,0.05); }
+.md-body tbody tr:nth-child(even) { background:rgba(255,255,255,0.02); }
+.md-body td { padding:11px 14px;color:#e0e6f0;vertical-align:top;font-size:12.5px; }
+.md-body code { background:rgba(212,168,67,0.12);color:var(--gold2);padding:2px 7px;border-radius:4px;font-size:11.5px;font-weight:600; }
+.md-body blockquote { border-left:3px solid var(--gold);padding:8px 14px;color:#a0a8b8;font-style:italic;margin:12px 0;background:rgba(212,168,67,0.04);border-radius:0 6px 6px 0; }
+
+/* Number highlighting — auto-applied via JS */
+.num-money { color:#f0cc7a;font-weight:700;font-size:1.05em; }
+.num-pct-good { color:#4caf78;font-weight:700; }
+.num-pct-bad { color:#e05c5c;font-weight:700; }
+.num-pct-neutral { color:#d4a843;font-weight:700; }
+
+/* Problem/Solution visual cards */
+.issue-card { background:rgba(224,92,92,0.07);border:1px solid rgba(224,92,92,0.2);border-left:3px solid #e05c5c;border-radius:6px;padding:12px 14px;margin-bottom:8px; }
+.solution-card { background:rgba(76,175,120,0.07);border:1px solid rgba(76,175,120,0.2);border-left:3px solid #4caf78;border-radius:6px;padding:12px 14px;margin-bottom:8px; }
+.action-card { background:rgba(212,168,67,0.07);border:1px solid rgba(212,168,67,0.2);border-left:3px solid var(--gold);border-radius:6px;padding:12px 14px;margin-bottom:8px; }
 
 /* ── Grid ── */
 .g2c { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
@@ -502,6 +524,7 @@ function renderMarkdown() {
     if (raw && raw.trim()) {
       el.innerHTML = marked.parse(raw);
       el.setAttribute('data-rendered', '1');
+      enhanceNumbers(el);
     }
   });
 }
@@ -605,9 +628,38 @@ function renderChartsForSlide() {
 }
 {% endif %}
 
+function enhanceNumbers(el) {
+  if (!el || el.getAttribute('data-enhanced')) return;
+  el.setAttribute('data-enhanced','1');
+  // Currency amounts → gold
+  el.innerHTML = el.innerHTML.replace(
+    /(\$\s?[\d,\.]+(?:\s*(?:COP|USD|EUR|MXN|M|K))?|(?:COP|USD|EUR|MXN)\s[\d,\.]+)/g,
+    '<span class="num-money">$1</span>'
+  );
+  // Percentages — colored by value
+  el.innerHTML = el.innerHTML.replace(/(\d+(?:\.\d+)?)%/g, function(m,n){
+    var v = parseFloat(n);
+    var cls = v >= 65 ? 'num-pct-good' : v <= 35 ? 'num-pct-bad' : 'num-pct-neutral';
+    return '<span class="'+cls+'">'+m+'</span>';
+  });
+  // Action tags
+  el.innerHTML = el.innerHTML.replace(/\b(HOY|TODAY|URGENTE|Immediate)\b/g,
+    '<span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;letter-spacing:.5px;">$1</span>');
+  el.innerHTML = el.innerHTML.replace(/\b(7 [Dd]ías?|7 [Dd]ays?)\b/g,
+    '<span style="background:rgba(212,168,67,0.12);color:var(--gold);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">$1</span>');
+  el.innerHTML = el.innerHTML.replace(/\b(30 [Dd]ías?|30 [Dd]ays?)\b/g,
+    '<span style="background:rgba(76,175,120,0.1);color:#4caf78;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">$1</span>');
+  // Impact lines
+  el.innerHTML = el.innerHTML.replace(/(→\s*(?:Impact|Impacto|Expected|Esperado):\s*)/gi,
+    '<span style="color:#4caf78;font-weight:700;">$1</span>');
+}
+
 window.addEventListener('load', function() {
   renderMarkdown();
   renderChartsForSlide();
+  setTimeout(function(){
+    document.querySelectorAll('.md-body').forEach(enhanceNumbers);
+  }, 300);
 });
 
 // ── PDF Export — print window approach (most reliable) ──
