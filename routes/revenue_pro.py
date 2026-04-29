@@ -256,10 +256,9 @@ def analysis(property_id):
 
 
 @revenue_pro_bp.route('/<int:property_id>/analyze', methods=['POST'])
+@login_required
 def run_analysis(property_id):
     from flask_login import current_user
-    if not current_user.is_authenticated:
-        return jsonify({'error': 'Sesión expirada. Recarga la página e inicia sesión de nuevo.'}), 401
     prop = OmniProperty.query.get_or_404(property_id)
     if not _can_access(prop):
         return jsonify({'error': 'Sin acceso'}), 403
@@ -329,9 +328,11 @@ def run_analysis(property_id):
             setattr(ana, f'section_{key}', val)
         db.session.add(ana)
         db.session.commit()
-        return jsonify({'ok': True, 'analysis_id': ana.id})
+        flash('Análisis generado exitosamente.', 'success')
+        return redirect(url_for('revenue_pro.analysis', property_id=property_id))
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        flash(f'Error al generar análisis: {str(e)}', 'error')
+        return redirect(url_for('revenue_pro.analysis', property_id=property_id))
 
 
 # ── Invite owner ───────────────────────────────────────────────────────────────
