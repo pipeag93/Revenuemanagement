@@ -79,11 +79,35 @@ def new_property():
         perf.occupancy_pct       = occ
         perf.adr                 = adr
         perf.revpar              = _fv(request.form.get('revpar'), None)
-        perf.channel_direct_pct  = _fv(request.form.get('channel_direct_pct'), 0)
-        perf.channel_booking_pct = _fv(request.form.get('channel_booking_pct'), 0)
-        perf.channel_expedia_pct = _fv(request.form.get('channel_expedia_pct'), 0)
-        perf.channel_airbnb_pct  = _fv(request.form.get('channel_airbnb_pct'), 0)
-        perf.channel_corp_pct    = _fv(request.form.get('channel_corp_pct'), 0)
+        # Channel data — support both revenue amounts and percentages
+        booking_rev = _fv(request.form.get('channel_booking_rev'), None)
+        direct_rev  = _fv(request.form.get('channel_direct_rev'), None)
+        expedia_rev = _fv(request.form.get('channel_expedia_rev'), None)
+        airbnb_rev  = _fv(request.form.get('channel_airbnb_rev'), None)
+        corp_rev    = _fv(request.form.get('channel_corp_rev'), None)
+        total_ch    = (booking_rev or 0) + (direct_rev or 0) + (expedia_rev or 0) + (airbnb_rev or 0) + (corp_rev or 0)
+
+        if total_ch > 0:
+            # Calculate % from amounts
+            perf.channel_booking_pct = round((booking_rev or 0) / total_ch * 100, 1)
+            perf.channel_direct_pct  = round((direct_rev or 0) / total_ch * 100, 1)
+            perf.channel_expedia_pct = round((expedia_rev or 0) / total_ch * 100, 1)
+            perf.channel_airbnb_pct  = round((airbnb_rev or 0) / total_ch * 100, 1)
+            perf.channel_corp_pct    = round((corp_rev or 0) / total_ch * 100, 1)
+            # Store revenue amounts in notes field for AI context
+            ch_notes = []
+            if booking_rev: ch_notes.append(f"Booking.com: {booking_rev:,.0f}")
+            if direct_rev:  ch_notes.append(f"Directo: {direct_rev:,.0f}")
+            if expedia_rev: ch_notes.append(f"Expedia: {expedia_rev:,.0f}")
+            if airbnb_rev:  ch_notes.append(f"Airbnb: {airbnb_rev:,.0f}")
+            if corp_rev:    ch_notes.append(f"Corporativo: {corp_rev:,.0f}")
+            perf.feeder_markets = (perf.feeder_markets or '') + (f" | Ventas por canal: {', '.join(ch_notes)}" if ch_notes else '')
+        else:
+            perf.channel_direct_pct  = _fv(request.form.get('channel_direct_pct'), 0)
+            perf.channel_booking_pct = _fv(request.form.get('channel_booking_pct'), 0)
+            perf.channel_expedia_pct = _fv(request.form.get('channel_expedia_pct'), 0)
+            perf.channel_airbnb_pct  = _fv(request.form.get('channel_airbnb_pct'), 0)
+            perf.channel_corp_pct    = _fv(request.form.get('channel_corp_pct'), 0)
         perf.city_avg_occ_pct    = _fv(request.form.get('city_avg_occ_pct'), None)
         db.session.add(perf)
 

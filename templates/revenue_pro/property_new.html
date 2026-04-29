@@ -139,17 +139,82 @@
       </div>
     </div>
 
-    <!-- ── Canales ── -->
+    <!-- ── Canales por Monto ── -->
     <div class="card" style="margin-bottom:14px;">
-      <div class="card-t">Mix de Canales (opcional)</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-        <div class="field"><label>Directo %</label><input class="fi" type="number" name="channel_direct_pct" placeholder="0" min="0" max="100"></div>
-        <div class="field"><label>Booking.com %</label><input class="fi" type="number" name="channel_booking_pct" placeholder="0" min="0" max="100"></div>
-        <div class="field"><label>Expedia %</label><input class="fi" type="number" name="channel_expedia_pct" placeholder="0" min="0" max="100"></div>
-        <div class="field"><label>Airbnb %</label><input class="fi" type="number" name="channel_airbnb_pct" placeholder="0" min="0" max="100"></div>
-        <div class="field"><label>Corporativo %</label><input class="fi" type="number" name="channel_corp_pct" placeholder="0" min="0" max="100"></div>
-        <div class="field"><label>Ocu. promedio ciudad %</label><input class="fi" type="number" name="city_avg_occ_pct" placeholder="65" min="0" max="100"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="card-t" style="margin-bottom:0;">
+          <span class="es-text">Ventas por Canal — en tu moneda</span>
+          <span class="en-text">Sales by Channel — in your currency</span>
+        </div>
+        <span style="font-size:10px;color:var(--muted);" id="channel-currency-label">COP</span>
       </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">
+        <span class="es-text">Ingresa cuánto vendió cada canal en el mes. El sistema calcula el % automáticamente.</span>
+        <span class="en-text">Enter how much each channel sold per month. The system auto-calculates the %.</span>
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px;">
+        <div class="field">
+          <label>
+            <span class="es-text">Booking.com — Ventas mes</span>
+            <span class="en-text">Booking.com — Monthly sales</span>
+          </label>
+          <input class="fi" type="text" name="channel_booking_rev" id="ch-booking"
+            placeholder="ej. 45,000,000" oninput="calcChannels()" style="color:var(--gold2);">
+        </div>
+        <div class="field">
+          <label>
+            <span class="es-text">Directo — Ventas mes</span>
+            <span class="en-text">Direct — Monthly sales</span>
+          </label>
+          <input class="fi" type="text" name="channel_direct_rev" id="ch-direct"
+            placeholder="ej. 5,000,000" oninput="calcChannels()" style="color:var(--green);">
+        </div>
+        <div class="field">
+          <label>
+            <span class="es-text">Expedia — Ventas mes</span>
+            <span class="en-text">Expedia — Monthly sales</span>
+          </label>
+          <input class="fi" type="text" name="channel_expedia_rev" id="ch-expedia"
+            placeholder="ej. 0" oninput="calcChannels()" style="color:var(--blue);">
+        </div>
+        <div class="field">
+          <label>Airbnb — <span class="es-text">Ventas mes</span><span class="en-text">Monthly sales</span></label>
+          <input class="fi" type="text" name="channel_airbnb_rev" id="ch-airbnb"
+            placeholder="ej. 0" oninput="calcChannels()">
+        </div>
+        <div class="field">
+          <label>
+            <span class="es-text">Corporativo / B2B — Ventas mes</span>
+            <span class="en-text">Corporate / B2B — Monthly sales</span>
+          </label>
+          <input class="fi" type="text" name="channel_corp_rev" id="ch-corp"
+            placeholder="ej. 0" oninput="calcChannels()">
+        </div>
+        <div class="field">
+          <label>
+            <span class="es-text">% Ocupación promedio ciudad</span>
+            <span class="en-text">City average occupancy %</span>
+          </label>
+          <input class="fi" type="number" name="city_avg_occ_pct" placeholder="65" min="0" max="100">
+        </div>
+      </div>
+
+      <!-- Channel breakdown visual -->
+      <div id="channel-breakdown" style="display:none;background:var(--card2);border-radius:8px;padding:14px;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;">
+          <span class="es-text">Distribución de Canales</span>
+          <span class="en-text">Channel Distribution</span>
+        </div>
+        <div id="channel-bar" style="height:28px;border-radius:6px;overflow:hidden;display:flex;margin-bottom:8px;"></div>
+        <div id="channel-detail" style="display:flex;flex-wrap:wrap;gap:10px;font-size:11px;"></div>
+      </div>
+
+      <!-- Hidden % fields for backend compatibility -->
+      <input type="hidden" name="channel_booking_pct" id="ch-booking-pct" value="0">
+      <input type="hidden" name="channel_direct_pct" id="ch-direct-pct" value="0">
+      <input type="hidden" name="channel_expedia_pct" id="ch-expedia-pct" value="0">
+      <input type="hidden" name="channel_airbnb_pct" id="ch-airbnb-pct" value="0">
+      <input type="hidden" name="channel_corp_pct" id="ch-corp-pct" value="0">
     </div>
 
     <!-- ── CompSet ── -->
@@ -200,6 +265,76 @@
 
 {% block scripts %}
 <script>
+// Update currency label when currency selector changes
+document.querySelector('[name=currency]').addEventListener('change', function() {
+  var el = document.getElementById('channel-currency-label');
+  if (el) el.textContent = this.value;
+});
+
+function parseAmt(s) {
+  return parseFloat((s || '').replace(/,/g,'').replace(/\$/g,'')) || 0;
+}
+
+function calcChannels() {
+  var booking = parseAmt(document.getElementById('ch-booking').value);
+  var direct  = parseAmt(document.getElementById('ch-direct').value);
+  var expedia = parseAmt(document.getElementById('ch-expedia').value);
+  var airbnb  = parseAmt(document.getElementById('ch-airbnb').value);
+  var corp    = parseAmt(document.getElementById('ch-corp').value);
+  var total   = booking + direct + expedia + airbnb + corp;
+  if (total === 0) {
+    document.getElementById('channel-breakdown').style.display = 'none';
+    return;
+  }
+  // Calculate %
+  var pcts = {
+    booking: Math.round(booking/total*100),
+    direct:  Math.round(direct/total*100),
+    expedia: Math.round(expedia/total*100),
+    airbnb:  Math.round(airbnb/total*100),
+    corp:    Math.round(corp/total*100)
+  };
+  // Set hidden fields
+  document.getElementById('ch-booking-pct').value = pcts.booking;
+  document.getElementById('ch-direct-pct').value  = pcts.direct;
+  document.getElementById('ch-expedia-pct').value = pcts.expedia;
+  document.getElementById('ch-airbnb-pct').value  = pcts.airbnb;
+  document.getElementById('ch-corp-pct').value    = pcts.corp;
+
+  var cur = document.querySelector('[name=currency]').value;
+  function fmtM(v) { return v>=1e6 ? cur+' '+(v/1e6).toFixed(1)+'M' : v>=1e3 ? cur+' '+(v/1e3).toFixed(0)+'K' : cur+' '+v.toLocaleString('es-CO'); }
+
+  // Visual bar
+  var bar = document.getElementById('channel-bar');
+  var colors = {booking:'#c0392b',direct:'#4caf78',expedia:'#5c9ce0',airbnb:'#f0a500',corp:'#a78bfa'};
+  var labels = {booking:'Booking.com',direct:'Directo',expedia:'Expedia',airbnb:'Airbnb',corp:'Corporativo'};
+  bar.innerHTML = '';
+  [{k:'booking',v:booking},{k:'direct',v:direct},{k:'expedia',v:expedia},{k:'airbnb',v:airbnb},{k:'corp',v:corp}]
+    .filter(function(x){return x.v>0;})
+    .forEach(function(x){
+      var div = document.createElement('div');
+      div.style.cssText = 'width:'+Math.round(x.v/total*100)+'%;background:'+colors[x.k]+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;min-width:20px;';
+      div.textContent = pcts[x.k]+'%';
+      bar.appendChild(div);
+    });
+
+  // Detail
+  var det = document.getElementById('channel-detail');
+  det.innerHTML = '';
+  [{k:'booking',v:booking},{k:'direct',v:direct},{k:'expedia',v:expedia},{k:'airbnb',v:airbnb},{k:'corp',v:corp}]
+    .filter(function(x){return x.v>0;})
+    .forEach(function(x){
+      det.innerHTML += '<div style="display:flex;align-items:center;gap:5px;">'
+        +'<div style="width:8px;height:8px;border-radius:50%;background:'+colors[x.k]+';flex-shrink:0;"></div>'
+        +'<span style="color:#c0c8d8;font-weight:600;">'+labels[x.k]+':</span>'
+        +'<span style="color:'+colors[x.k]+';font-weight:700;">'+fmtM(x.v)+'</span>'
+        +'<span style="color:var(--dim);">('+pcts[x.k]+'%)</span>'
+        +'</div>';
+    });
+
+  document.getElementById('channel-breakdown').style.display = 'block';
+}
+
 function liveCalc() {
   var rooms = parseInt(document.getElementById('m-rooms').value) || 0;
   var adr = parseFloat((document.getElementById('m-adr').value || '').replace(/,/g,'').replace(/\$/g,'')) || 0;

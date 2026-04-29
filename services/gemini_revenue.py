@@ -215,16 +215,26 @@ def build_property_prompt(data: dict) -> str:
             display = fmt(v) if is_money else (f"{v}%" if 'pct' in key else str(v))
             perf_lines.append(f"- {label}: {display}")
 
-    # Channel mix
+    # Channel mix — show revenue amounts if embedded in feeder_markets field
+    feeder = perf.get('feeder_markets', '') or ''
+    ch_revenue_note = ''
+    if 'Ventas por canal:' in feeder:
+        idx = feeder.find('Ventas por canal:')
+        ch_revenue_note = feeder[idx:]
+        feeder = feeder[:idx].strip()
+
     ch_parts = []
-    for k, lbl in [('channel_direct_pct','Direct'),('channel_booking_pct','Booking.com'),
+    for k, lbl in [('channel_booking_pct','Booking.com'),('channel_direct_pct','Direct'),
                    ('channel_expedia_pct','Expedia'),('channel_airbnb_pct','Airbnb'),
                    ('channel_corp_pct','Corporate')]:
         v = perf.get(k, 0) or 0
-        if v:
+        if v and v > 0:
             ch_parts.append(f"{lbl} {v}%")
+
+    if ch_revenue_note:
+        perf_lines.append(f"- Channel sales revenue: {ch_revenue_note.replace('Ventas por canal: ','')}")
     if ch_parts:
-        perf_lines.append(f"- Channel mix: {' / '.join(ch_parts)}")
+        perf_lines.append(f"- Channel mix %: {' / '.join(ch_parts)}")
 
     if perf_lines:
         parts.append("\nCurrent Performance (Last 30 Days):")
