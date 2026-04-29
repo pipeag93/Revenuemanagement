@@ -250,7 +250,7 @@ def generate_omni_analysis(data: dict) -> dict:
     prompt = build_property_prompt(data)
 
     response = client.models.generate_content(
-        model='gemini-1.5-flash',
+        model='gemini-2.0-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=OMNI_SYSTEM_PROMPT,
