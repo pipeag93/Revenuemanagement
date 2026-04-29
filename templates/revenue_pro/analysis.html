@@ -6,353 +6,498 @@
   <span style="color:var(--cream);font-weight:600;">{{ prop.name or 'Sin nombre' }}</span>
   <span style="color:var(--dim);">·</span>
   <span style="color:var(--muted);">{{ prop.property_type|title }}</span>
-  {% if prop.city %}
-  <span style="color:var(--dim);">·</span>
-  <span style="color:var(--muted);">{{ prop.city }}</span>
-  {% endif %}
+  {% if prop.city %}<span style="color:var(--dim);">·</span><span style="color:var(--muted);">{{ prop.city }}</span>{% endif %}
   <span style="color:var(--dim);">·</span>
   <span style="color:var(--gold);font-weight:600;">{{ prop.currency }}</span>
-  <span style="color:var(--dim);">·</span>
-  <span style="color:var(--muted);">{{ prop.total_rooms }} hab</span>
-</div>
-{% endblock %}
-
-{% block content %}
-<div style="max-width:960px;margin:0 auto;padding:24px;">
-
-  <!-- Action bar -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
-    <div style="display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap;">
-      <a href="{{ url_for('revenue_pro.portfolio') }}"
-         style="color:var(--muted);text-decoration:none;">← Portafolio</a>
-      {% if analysis %}
-      <span style="color:var(--dim);">·</span>
-      <span style="color:var(--dim);">Último análisis: {{ analysis.created_at.strftime('%d %b %Y %H:%M') }}</span>
-      {% endif %}
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}"
-         class="btn-ghost" style="text-decoration:none;font-size:11px;">Editar perfil</a>
-      <form method="POST" action="{{ url_for('revenue_pro.run_analysis', property_id=prop.id) }}"
-            onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').innerHTML='⟳ Analizando... (30-60 seg)';">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn-gold">
-          ✦ {% if analysis %}Re-generar Análisis{% else %}Generar Análisis OMNI{% endif %}
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Loading -->
-  <div id="loading" style="display:none;text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:12px;margin-bottom:20px;">
-    <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);margin-bottom:8px;">
-      OMNI-REVENUE ARCHITECT analizando...
-    </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:24px;">
-      Gemini AI procesa el perfil completo: DNA · Mercado · CompSet · Tarifas · Canales. 15–30 segundos.
-    </div>
-    <div style="display:flex;justify-content:center;gap:8px;">
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:dot-pulse 1.4s ease-in-out infinite;"></div>
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:dot-pulse 1.4s ease-in-out infinite .2s;"></div>
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:dot-pulse 1.4s ease-in-out infinite .4s;"></div>
-    </div>
-  </div>
-  <style>
-    @keyframes dot-pulse {
-      0%, 100% { opacity: .25; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.3); }
-    }
-  </style>
-
-  {% if not analysis %}
-  <!-- Empty state -->
-  <div style="text-align:center;padding:56px 24px;border:1px dashed var(--dim);border-radius:12px;">
-    <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--muted);margin-bottom:10px;">
-      Sin análisis generado
-    </div>
-    <p style="font-size:13px;color:var(--dim);max-width:480px;margin:0 auto 24px;">
-      Haz clic en <strong style="color:var(--gold);">Generar Análisis OMNI</strong> para que la IA produzca
-      la estrategia completa de revenue: tarifas, OTAs, canales, competidores y plan de acción.
-    </p>
-    <p style="font-size:11px;color:var(--dim);">
-      Con solo habitaciones + tarifa mínima ya funciona.
-      <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}" style="color:var(--gold);text-decoration:none;">Agrega más datos</a>
-      para un análisis más preciso.
-    </p>
-  </div>
-
-  {% else %}
-  <!-- Analysis output -->
-  <div id="analysis-content" style="transition:opacity .2s;">
-
-    <!-- Banner -->
-    <div style="background:linear-gradient(135deg,var(--card) 0%,var(--panel) 100%);border:1px solid rgba(212,168,67,0.2);border-radius:12px;padding:24px 28px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;">
-      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:50%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);"></div>
-      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:50%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);"></div>
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--gold2);margin-bottom:6px;">
-        OMNI-REVENUE Analysis
-      </div>
-      <div style="font-size:11px;color:var(--muted);letter-spacing:.5px;">
-        {{ prop.name or 'Propiedad' }} &nbsp;·&nbsp;
-        {% if prop.city %}{{ prop.city }} &nbsp;·&nbsp; {% endif %}
-        {{ analysis.currency }} &nbsp;·&nbsp;
-        {{ analysis.created_at.strftime('%d %b %Y %H:%M') }}
-      </div>
-    </div>
-
-    <!-- ══ VISUAL DASHBOARD ══ -->
-    {% set perf = prop.performance %}
-    {% set rooms = prop.room_types.all() %}
-    {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
-    {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
-    {% set direct = perf.channel_direct_pct if perf else 0 %}
-    {% set booking = perf.channel_booking_pct if perf else 100 %}
-    {% set expedia = perf.channel_expedia_pct if perf else 0 %}
-    {% set corp = perf.channel_corp_pct if perf else 0 %}
-    {% set other = (100 - direct - booking - expedia - corp)|round %}
-    {% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
-    {% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
-    {% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
-
-    <!-- KPI Cards -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
-      <div style="background:var(--card);border:1px solid var(--b2);border-top:3px solid var(--red);border-radius:10px;padding:16px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">Ocupación Actual</div>
-        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--warn);">{{ occ|int }}%</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;">{{ prop.total_rooms }} hab × 30 días</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--b2);border-top:3px solid var(--gold);border-radius:10px;padding:16px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">ADR</div>
-        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--gold2);">{{ '{:,.0f}'.format(adr) }}</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;">{{ prop.currency }} tarifa promedio</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--b2);border-top:3px solid var(--green);border-radius:10px;padding:16px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">Revenue Mensual</div>
-        <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--green);">
-          {% if monthly_rev >= 1000000 %}{{ (monthly_rev/1000000)|round(1) }}M{% else %}{{ '{:,.0f}'.format(monthly_rev) }}{% endif %}
-        </div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;">{{ prop.currency }} actual</div>
-      </div>
-      <div style="background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.3);border-top:3px solid var(--gold2);border-radius:10px;padding:16px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-bottom:8px;">Potencial (avg ciudad)</div>
-        <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold2);">
-          {% if potential_rev >= 1000000 %}{{ (potential_rev/1000000)|round(1) }}M{% else %}{{ '{:,.0f}'.format(potential_rev) }}{% endif %}
-        </div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;">al {{ city_occ|int }}% ocupación ciudad</div>
-      </div>
-    </div>
-
-    <!-- Charts Row 1: Channel Mix + Revenue Gap -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-
-      <!-- Channel Mix Donut -->
-      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Mix de Canales Actual</div>
-        <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;">
-          <canvas id="chart-channels"></canvas>
-        </div>
-        {% if direct == 0 and booking >= 90 %}
-        <div style="margin-top:12px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--red);">
-          ⚠ Dependencia crítica: {{ booking|int }}% en un solo canal. Comisión: −15% = {{ '{:,.0f}'.format(adr * 0.15) }} {{ prop.currency }}/noche perdida.
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Revenue Comparison Bar -->
-      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Revenue: Actual vs Potencial ({{ prop.currency }})</div>
-        <div style="position:relative;height:200px;">
-          <canvas id="chart-revenue"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Row 2: Room Types + Occupancy Gauge -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-
-      <!-- Room Types Revenue Bar -->
-      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Revenue por Tipo de Habitación/mes</div>
-        <div style="position:relative;height:200px;">
-          <canvas id="chart-rooms"></canvas>
-        </div>
-      </div>
-
-      <!-- Channel NRevPAR Comparison -->
-      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">NRevPAR Neto por Canal ({{ prop.currency }})</div>
-        <div style="position:relative;height:200px;">
-          <canvas id="chart-nrevpar"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Rate Plans Visual -->
-    <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;margin-bottom:16px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Estructura de Tarifas por Canal · Floor: {{ '{:,.0f}'.format(prop.price_floor) }} {{ prop.currency }}</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
-        {% set bar = (prop.price_floor * 1.25)|round|int %}
-        {% set nrefund = (bar * 0.85)|round|int %}
-        {% set early = (bar * 0.90)|round|int %}
-        {% set direct_rate = (bar * 0.92)|round|int %}
-        {% set rack = (bar * 1.35)|round|int %}
-        {% for label, rate, color, note in [
-          ('Floor / Mín', prop.price_floor|int, '#5c9ce0', 'Propietario'),
-          ('BAR (OTA)', bar, '#d4a843', 'Tarifa base'),
-          ('No Reembolsable', nrefund, '#f0cc7a', '−15% BAR'),
-          ('Directo ★', direct_rate, '#4caf78', '−8% · 0% comisión'),
-          ('Rack / Pico', rack, '#e05c5c', '+35% alta demanda')
-        ] %}
-        <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;border-top:3px solid {{ color }};">
-          <div style="font-size:9px;font-weight:700;color:{{ color }};text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">{{ label }}</div>
-          <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--cream);">{{ '{:,.0f}'.format(rate) }}</div>
-          <div style="font-size:9px;color:var(--dim);margin-top:3px;">{{ note }}</div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Section tabs -->
-    {% set sections = [
-      ('section_dna',          'I — DNA Profile',         'var(--gold)'),
-      ('section_diagnosis',    'II — Diagnóstico',        'var(--red)'),
-      ('section_forecast',     'III — Demand Forecast',   'var(--green)'),
-      ('section_matrix',       'IV — Pricing Matrix',     'var(--gold2)'),
-      ('section_rates',        'V — Rate Plans',          'var(--blue)'),
-      ('section_restrictions', 'VI — Restricciones',      'var(--warn)'),
-      ('section_channels',     'VII — Canales & Ads',     'var(--blue)'),
-      ('section_upsell',       'VIII — Upsell',           'var(--green)'),
-      ('section_action',       'IX — Action Plan',        'var(--red)'),
-      ('section_kpis',         'X — KPIs',                'var(--gold)')
-    ] %}
-
-    <div class="card">
-      <!-- Tab buttons -->
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--b2);"
-           id="tab-bar">
-        {% for field, label, color in sections %}
-        <button
-          class="section-tab"
-          data-field="{{ field }}"
-          data-color="{{ color }}"
-          onclick="showTab('{{ field }}')"
-          style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--b2);background:var(--card2);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;">
-          {{ label }}
-        </button>
-        {% endfor %}
-      </div>
-
-      <!-- Section content panels -->
-      {% for field, label, color in sections %}
-      <div id="panel-{{ field }}" class="section-panel"
-           style="display:{% if loop.first %}block{% else %}none{% endif %};">
-        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:{{ color }};margin-bottom:14px;">
-          {{ label }}
-        </div>
-        <div class="omni-rendered" id="rendered-{{ field }}">{{ analysis[field] or 'Sección no generada. Regenera el análisis.' }}</div>
-      </div>
-      {% endfor %}
-    </div>
-
-  </div><!-- /analysis-content -->
-  {% endif %}
-
 </div>
 {% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <style>
-  .omni-rendered { font-size:13px; color:var(--muted); line-height:1.9; }
-  .omni-rendered h1,.omni-rendered h2 { font-family:'Playfair Display',serif; color:var(--gold2); font-size:17px; font-weight:600; margin:20px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--b2); }
-  .omni-rendered h3 { color:var(--cream); font-size:14px; font-weight:600; margin:14px 0 6px; }
-  .omni-rendered p { margin-bottom:10px; }
-  .omni-rendered strong { color:var(--cream); font-weight:700; }
-  .omni-rendered ul,.omni-rendered ol { margin:8px 0 8px 20px; }
-  .omni-rendered li { margin-bottom:6px; }
-  .omni-rendered table { width:100%; border-collapse:collapse; margin:14px 0; font-size:12px; }
-  .omni-rendered th { background:rgba(212,168,67,0.1); color:var(--gold); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; padding:10px 14px; text-align:left; border:1px solid var(--b2); }
-  .omni-rendered td { padding:10px 14px; border:1px solid var(--b2); color:var(--cream); vertical-align:top; }
-  .omni-rendered tr:hover td { background:rgba(212,168,67,0.03); }
-  .omni-rendered code { background:rgba(212,168,67,0.08); color:var(--gold2); padding:2px 6px; border-radius:4px; font-size:11px; }
-  .omni-rendered blockquote { border-left:3px solid var(--gold); padding-left:12px; color:var(--muted); font-style:italic; margin:10px 0; }
-  .omni-rendered hr { border:none; border-top:1px solid var(--b2); margin:16px 0; }
-  /* Highlight numbers in gold */
-  .omni-rendered td:nth-child(2),.omni-rendered td:nth-child(3),.omni-rendered td:nth-child(4) { color:var(--gold2); font-weight:600; }
+/* ── Slides ── */
+.slide { display:none; animation:fadeIn .35s ease; }
+.slide.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Progress dots ── */
+.dot { width:8px;height:8px;border-radius:50%;background:var(--dim);cursor:pointer;transition:all .2s;flex-shrink:0; }
+.dot.on { background:var(--gold);transform:scale(1.3); }
+
+/* ── Nav arrows ── */
+.nav-arrow {
+  width:44px;height:44px;border-radius:50%;background:var(--card);border:1px solid rgba(212,168,67,0.25);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:18px;color:var(--gold);transition:all .2s;flex-shrink:0;
+}
+.nav-arrow:hover { background:var(--gold);color:#0c0e14;border-color:var(--gold); }
+.nav-arrow:disabled { opacity:.3;cursor:not-allowed; }
+.nav-arrow:disabled:hover { background:var(--card);color:var(--gold);border-color:rgba(212,168,67,0.25); }
+
+/* ── Cards ── */
+.kpi-card { background:var(--card2);border-radius:8px;padding:16px;text-align:center; }
+.kpi-lbl { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#aab0be;margin-bottom:8px; }
+.kpi-val { font-family:'Playfair Display',serif;font-size:26px;font-weight:700;line-height:1; }
+.kpi-sub { font-size:10px;color:#8a90a0;margin-top:5px; }
+
+/* ── Section header ── */
+.slide-header { margin-bottom:20px; }
+.slide-num { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold3); }
+.slide-title { font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--cream);margin:4px 0; }
+.slide-sub { font-size:12px;color:#8a90a0; }
+
+/* ── Markdown content ── */
+.md-body { font-size:13px;color:#c0c8d8;line-height:1.9; }
+.md-body h1,.md-body h2 { font-family:'Playfair Display',serif;color:var(--gold2);font-size:16px;font-weight:600;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(212,168,67,0.15); }
+.md-body h3 { color:var(--cream);font-size:14px;font-weight:600;margin:12px 0 6px; }
+.md-body p { margin-bottom:10px; }
+.md-body strong { color:var(--cream);font-weight:700; }
+.md-body ul,.md-body ol { margin:8px 0 8px 20px; }
+.md-body li { margin-bottom:6px; }
+.md-body table { width:100%;border-collapse:collapse;margin:14px 0;font-size:12px; }
+.md-body th { background:rgba(212,168,67,0.15);color:#f0cc7a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:10px 14px;text-align:left;border:1px solid rgba(212,168,67,0.2); }
+.md-body td { padding:10px 14px;border:1px solid rgba(255,255,255,0.07);color:#dde3f0;vertical-align:top; }
+.md-body tr:hover td { background:rgba(212,168,67,0.04); }
+.md-body code { background:rgba(212,168,67,0.1);color:var(--gold2);padding:2px 6px;border-radius:4px;font-size:11px; }
+
+/* ── Grid ── */
+.g2c { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.g3c { display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px; }
+.g4c { display:grid;grid-template-columns:repeat(4,1fr);gap:12px; }
+
+/* ── Chart boxes ── */
+.ch { position:relative;height:220px; }
+.ch-sm { position:relative;height:180px; }
 </style>
 {% endblock %}
 
-{% block scripts %}
-<script>
-var activeField = 'section_dna';
+{% block content %}
+<div style="max-width:980px;margin:0 auto;padding:16px 24px 32px;">
 
-function showTab(field) {
-  // Hide all panels
-  document.querySelectorAll('.section-panel').forEach(function(p) {
-    p.style.display = 'none';
-  });
-  // Reset all tabs
-  document.querySelectorAll('.section-tab').forEach(function(btn) {
-    btn.style.background = 'var(--card2)';
-    btn.style.color = 'var(--muted)';
-    btn.style.borderColor = 'rgba(255,255,255,0.05)';
-  });
-  // Show selected
-  var panel = document.getElementById('panel-' + field);
-  if (panel) panel.style.display = 'block';
-  // Activate tab
-  var tab = document.querySelector('[data-field="' + field + '"]');
-  if (tab) {
-    tab.style.background = 'var(--gold)';
-    tab.style.color = '#0c0e14';
-    tab.style.borderColor = 'var(--gold)';
+  <!-- Action bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+    <a href="{{ url_for('revenue_pro.portfolio') }}" style="font-size:12px;color:var(--muted);text-decoration:none;">← Portafolio</a>
+    <div style="display:flex;gap:10px;align-items:center;">
+      {% if analysis %}<span style="font-size:11px;color:var(--dim);">{{ analysis.created_at.strftime('%d %b %Y %H:%M') }}</span>{% endif %}
+      <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}" class="btn-ghost" style="text-decoration:none;font-size:11px;">Editar perfil</a>
+      <form method="POST" action="{{ url_for('revenue_pro.run_analysis', property_id=prop.id) }}"
+            onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Analizando...';">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-gold" style="font-size:11px;padding:8px 18px;">
+          ✦ {% if analysis %}Re-generar{% else %}Generar Análisis OMNI{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if not analysis %}
+  <div style="text-align:center;padding:64px 24px;border:1px dashed var(--dim);border-radius:12px;">
+    <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--muted);margin-bottom:10px;">Sin análisis generado</div>
+    <p style="font-size:13px;color:var(--dim);max-width:460px;margin:0 auto 20px;">Haz clic en <strong style="color:var(--gold);">Generar Análisis OMNI</strong> para obtener la estrategia completa con gráficas interactivas.</p>
+  </div>
+
+  {% else %}
+  {% set perf = prop.performance %}
+  {% set rooms = prop.room_types.all() %}
+  {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
+  {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
+  {% set direct = perf.channel_direct_pct if perf else 0 %}
+  {% set booking_pct = perf.channel_booking_pct if perf else 100 %}
+  {% set expedia_pct = perf.channel_expedia_pct if perf else 0 %}
+  {% set corp_pct = perf.channel_corp_pct if perf else 0 %}
+  {% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
+  {% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
+  {% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
+  {% set bar_rate = (adr)|round|int %}
+  {% set direct_rate = (adr * 0.92)|round|int %}
+  {% set nrefund = (adr * 0.85)|round|int %}
+
+  <!-- Progress bar -->
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);" id="slide-label">I — DNA Profile</div>
+      <div style="font-size:11px;color:var(--dim);" id="slide-counter">1 / 10</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="nav-arrow" id="btn-prev" onclick="goSlide(-1)" disabled>◀</button>
+      <div style="flex:1;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;" id="dots-container"></div>
+      <button class="nav-arrow" id="btn-next" onclick="goSlide(1)">▶</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDES ══════════════════ -->
+
+  <!-- SLIDE 1: DNA -->
+  <div class="slide active" data-label="I — DNA Profile">
+    <div class="slide-header">
+      <div class="slide-num">Sección I</div>
+      <div class="slide-title">Property DNA Profile</div>
+      <div class="slide-sub">Posicionamiento · Inventario · Poder de pricing</div>
+    </div>
+    <div class="g4c" style="margin-bottom:16px;">
+      <div class="kpi-card" style="border-top:3px solid var(--gold);">
+        <div class="kpi-lbl">Total Hab.</div>
+        <div class="kpi-val" style="color:var(--gold2);">{{ prop.total_rooms }}</div>
+        <div class="kpi-sub">{{ prop.property_type|title }}</div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid var(--blue);">
+        <div class="kpi-lbl">Posicionamiento</div>
+        <div class="kpi-val" style="color:#a0c4f0;font-size:18px;">{{ prop.positioning|title }}</div>
+        <div class="kpi-sub">{{ prop.star_rating }}★ · {{ prop.brand_strength|title }}</div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid var(--warn);">
+        <div class="kpi-lbl">Price Floor</div>
+        <div class="kpi-val" style="color:var(--warn);font-size:20px;">{{ '{:,.0f}'.format(prop.price_floor) }}</div>
+        <div class="kpi-sub">{{ prop.currency }} mínimo</div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid {% if direct < 10 %}var(--red){% else %}var(--green){% endif %};">
+        <div class="kpi-lbl">Canal Directo</div>
+        <div class="kpi-val" style="color:{% if direct < 10 %}var(--red){% else %}var(--green){% endif %};">{{ direct|int }}%</div>
+        <div class="kpi-sub">{% if direct < 10 %}Riesgo crítico{% else %}Saludable{% endif %}</div>
+      </div>
+    </div>
+    {% if rooms %}
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t">Tipos de Habitación · Derivación de tarifas</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:rgba(212,168,67,0.1);">
+            <th style="padding:9px 14px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(212,168,67,0.2);text-align:left;">Tipo</th>
+            <th style="padding:9px 14px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(212,168,67,0.2);text-align:center;">Unidades</th>
+            <th style="padding:9px 14px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(212,168,67,0.2);text-align:center;">Pax</th>
+            <th style="padding:9px 14px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(212,168,67,0.2);text-align:right;">Tarifa derivada</th>
+            <th style="padding:9px 14px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(212,168,67,0.2);text-align:right;">Rev. mensual est.</th>
+          </tr></thead>
+          <tbody>
+            {% for rt in rooms %}
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(212,168,67,0.04)'" onmouseout="this.style.background='transparent'">
+              <td style="padding:10px 14px;color:var(--cream);font-weight:600;">{{ rt.name }}{% if rt.is_base %} <span style="font-size:9px;background:rgba(212,168,67,0.15);color:var(--gold);border-radius:4px;padding:2px 5px;margin-left:4px;">BASE</span>{% endif %}</td>
+              <td style="padding:10px 14px;text-align:center;color:#c0c8d8;">{{ rt.units }}</td>
+              <td style="padding:10px 14px;text-align:center;color:#c0c8d8;">{{ rt.pax_max }}</td>
+              <td style="padding:10px 14px;text-align:right;color:var(--gold2);font-weight:700;">{{ '{:,.0f}'.format(rt.derived_rate(prop.price_floor)) }} {{ prop.currency }}</td>
+              <td style="padding:10px 14px;text-align:right;color:var(--green);font-weight:600;">
+                {% set rev = rt.monthly_revenue(prop.price_floor) %}
+                {% if rev >= 1000000 %}{{ (rev/1000000)|round(1) }}M{% else %}{{ '{:,.0f}'.format(rev) }}{% endif %} {{ prop.currency }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card">
+      <div class="card-t">Análisis DNA — OMNI-REVENUE ARCHITECT</div>
+      <div class="md-body" id="md-dna">{{ analysis['section_dna'] or '' }}</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: DIAGNOSIS -->
+  <div class="slide" data-label="II — Diagnóstico">
+    <div class="slide-header">
+      <div class="slide-num">Sección II</div>
+      <div class="slide-title">Diagnóstico & Problemas Detectados</div>
+      <div class="slide-sub">Issues críticos con impacto en {{ prop.currency }}</div>
+    </div>
+    <div class="g2c" style="margin-bottom:16px;">
+      <div class="kpi-card" style="border-top:3px solid var(--red);padding:20px;">
+        <div class="kpi-lbl">Ocupación actual</div>
+        <div class="kpi-val" style="color:var(--warn);">{{ occ|int }}%</div>
+        <div class="kpi-sub">vs ciudad {{ city_occ|int }}% · gap {{ (city_occ - occ)|round|int }}pts</div>
+        <div style="margin-top:10px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:{{ occ }}%;background:linear-gradient(90deg,var(--warn),var(--red));border-radius:3px;"></div>
+        </div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid var(--red);padding:20px;">
+        <div class="kpi-lbl">Comisión OTA perdida / mes</div>
+        {% set ota_loss = (monthly_rev * (booking_pct/100) * 0.15)|round|int %}
+        <div class="kpi-val" style="color:var(--red);font-size:22px;">
+          −{% if ota_loss >= 1000000 %}{{ (ota_loss/1000000)|round(1) }}M{% else %}{{ '{:,.0f}'.format(ota_loss) }}{% endif %}
+        </div>
+        <div class="kpi-sub">{{ prop.currency }} · comisión 15% Booking</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t">Diagnóstico completo</div>
+      <div class="md-body" id="md-diag">{{ analysis['section_diagnosis'] or '' }}</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: FORECAST -->
+  <div class="slide" data-label="III — Demand Forecast">
+    <div class="slide-header">
+      <div class="slide-num">Sección III</div>
+      <div class="slide-title">Demand Forecast</div>
+      <div class="slide-sub">Próximos 7 · 14 · 30 días — ADR recomendado</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t">Proyección de ocupación y tarifa recomendada</div>
+      <div class="ch"><canvas id="chart-forecast"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t">Forecast detallado — IA</div>
+      <div class="md-body" id="md-fc">{{ analysis['section_forecast'] or '' }}</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: PRICING MATRIX -->
+  <div class="slide" data-label="IV — Pricing Matrix">
+    <div class="slide-header">
+      <div class="slide-num">Sección IV</div>
+      <div class="slide-title">Dynamic Pricing Matrix</div>
+      <div class="slide-sub">Ocupación × Lead Time → Tarifa recomendada · Base: {{ '{:,.0f}'.format(adr) }} {{ prop.currency }}</div>
+    </div>
+    {% set p = adr %}
+    <div class="card" style="margin-bottom:14px;overflow-x:auto;">
+      <div class="card-t">Matriz de Precios Dinámicos</div>
+      <table style="width:100%;border-collapse:collapse;min-width:560px;">
+        <thead><tr style="background:rgba(212,168,67,0.12);">
+          <th style="padding:11px 16px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(212,168,67,0.2);text-align:left;">Ocupación</th>
+          <th style="padding:11px 16px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(212,168,67,0.2);text-align:center;">Lead &gt; 30d</th>
+          <th style="padding:11px 16px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(212,168,67,0.2);text-align:center;">Lead 15–30d</th>
+          <th style="padding:11px 16px;font-size:10px;font-weight:700;color:#f0cc7a;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(212,168,67,0.2);text-align:center;">Lead &lt; 7d</th>
+        </tr></thead>
+        <tbody>
+          {% for row in [
+            ('0–30%','Baja','#5c9ce0', p, p*1.05, p*0.90),
+            ('31–60%','Normal','#d4a843', p*1.10, p*1.15, p*1.10),
+            ('61–90%','Alta','#f0cc7a', p*1.25, p*1.35, p*1.50),
+            ('91–100%','Compresión','#4caf78', p*1.50, p*1.70, None)
+          ] %}
+          <tr onmouseover="this.querySelectorAll('td').forEach(e=>e.style.filter='brightness(1.2)')" onmouseout="this.querySelectorAll('td').forEach(e=>e.style.filter='')">
+            <td style="padding:13px 16px;border:1px solid rgba(255,255,255,0.07);color:#dde3f0;font-weight:600;">
+              {{ row[0] }} <span style="background:rgba(255,255,255,0.08);color:{{ row[2] }};font-size:9px;padding:2px 7px;border-radius:4px;margin-left:6px;">{{ row[1] }}</span>
+            </td>
+            {% for val in [row[3], row[4], row[5]] %}
+            <td style="padding:13px 16px;border:1px solid rgba(255,255,255,0.07);text-align:center;background:rgba({% if loop.index == 1 %}96,165,250{% elif loop.index == 2 %}212,168,67{% else %}76,175,120{% endif %},0.07);">
+              {% if val %}
+              <div style="font-size:15px;font-weight:700;color:{{ row[2] }};">{{ '{:,.0f}'.format(val|round|int) }}</div>
+              <div style="font-size:10px;color:#8a90a0;margin-top:2px;">+{{ ((val/p - 1)*100)|round|int }}%</div>
+              {% else %}
+              <div style="font-size:13px;font-weight:700;color:var(--red);">CTD Activo</div>
+              <div style="font-size:10px;color:#8a90a0;margin-top:2px;">Cerrado salida</div>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="g2c">
+      <div class="card"><div class="card-t">Distribución de tarifas (días/mes)</div><div class="ch-sm"><canvas id="chart-dist"></canvas></div></div>
+      <div class="card"><div class="card-t">Uplift: precio estático vs dinámico</div><div class="ch-sm"><canvas id="chart-uplift"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: RATE PLANS -->
+  <div class="slide" data-label="V — Rate Plans">
+    <div class="slide-header">
+      <div class="slide-num">Sección V</div>
+      <div class="slide-title">Rate Plan Architecture</div>
+      <div class="slide-sub">Estructura de tarifas por canal · Regla directa siempre la más económica</div>
+    </div>
+    <div class="g3c" style="margin-bottom:16px;">
+      {% for label, rate, color, note in [
+        ('Floor / Mín', prop.price_floor|int, '#5c9ce0', 'Tarifa mínima propietario'),
+        ('BAR — OTA', adr|round|int, '#d4a843', 'Best Available Rate · base OTA'),
+        ('No Reembolsable', nrefund, '#c0c8d8', '−15% BAR · sin cancelación'),
+        ('Early Bird', (adr*0.90)|round|int, '#a0c4f0', '−10% · +30 días anticipo'),
+        ('Directo ★', direct_rate, '#4caf78', '−8% BAR · 0% comisión'),
+        ('Rack / Pico', (adr*1.40)|round|int, '#f0cc7a', '+40% alta demanda')
+      ] %}
+      <div class="kpi-card" style="border-top:3px solid {{ color }};text-align:left;padding:16px;">
+        <div style="font-size:9px;font-weight:700;color:{{ color }};text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">{{ label }}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:{{ color }};">{{ '{:,.0f}'.format(rate) }}</div>
+        <div style="font-size:10px;color:#8a90a0;margin-top:4px;">{{ prop.currency }} · {{ note }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="card" style="background:rgba(76,175,120,0.06);border-color:rgba(76,175,120,0.25);margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">★ Regla Directa — Siempre la Tarifa más Económica</div>
+      <div style="font-size:12px;color:#c0c8d8;line-height:1.8;">
+        Booking: huésped paga <strong style="color:#dde3f0;">{{ '{:,.0f}'.format(adr|round|int) }}</strong> → hotel recibe <strong style="color:var(--red);">{{ '{:,.0f}'.format(nrefund) }}</strong> (−15%) &nbsp;|&nbsp;
+        Directo: huésped paga <strong style="color:var(--green);">{{ '{:,.0f}'.format(direct_rate) }}</strong> (ahorra {{ '{:,.0f}'.format((adr - direct_rate)|round|int) }}) → hotel recibe <strong style="color:var(--green);">{{ '{:,.0f}'.format(direct_rate) }}</strong> (+{{ '{:,.0f}'.format((direct_rate - nrefund)|round|int) }} neto)
+      </div>
+    </div>
+    <div class="card"><div class="card-t">Rate Plans detallados — IA</div><div class="md-body" id="md-rates">{{ analysis['section_rates'] or '' }}</div></div>
+  </div>
+
+  <!-- SLIDE 6: RESTRICTIONS -->
+  <div class="slide" data-label="VI — Restricciones">
+    <div class="slide-header">
+      <div class="slide-num">Sección VI</div>
+      <div class="slide-title">Inventory Restrictions</div>
+      <div class="slide-sub">MinLOS · CTA · CTD · Overbooking</div>
+    </div>
+    <div class="card"><div class="card-t">Restricciones recomendadas — IA</div><div class="md-body" id="md-rest">{{ analysis['section_restrictions'] or '' }}</div></div>
+  </div>
+
+  <!-- SLIDE 7: CHANNELS -->
+  <div class="slide" data-label="VII — Canales & Ads">
+    <div class="slide-header">
+      <div class="slide-num">Sección VII</div>
+      <div class="slide-title">Channel Strategy & Paid Media</div>
+      <div class="slide-sub">Mix actual → Mix objetivo · OTAs · Google Hotel Ads · Pauta</div>
+    </div>
+    <div class="g2c" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-t">Mix Actual de Canales</div>
+        <div class="ch"><canvas id="chart-ch-actual"></canvas></div>
+        {% if direct < 10 %}
+        <div style="margin-top:10px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:6px;padding:10px;font-size:11px;color:var(--red);">
+          ⚠ Dependencia crítica: {{ booking_pct|int }}% en Booking.com → comisión −{{ '{:,.0f}'.format((monthly_rev * (booking_pct/100) * 0.15)|round|int) }} {{ prop.currency }}/mes
+        </div>
+        {% endif %}
+      </div>
+      <div class="card">
+        <div class="card-t">NRevPAR Neto por Canal ({{ prop.currency }}/noche)</div>
+        <div class="ch"><canvas id="chart-nrev"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t">Mix Objetivo — 6 meses</div>
+      <div style="height:32px;border-radius:8px;overflow:hidden;display:flex;margin-bottom:8px;">
+        <div style="width:35%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0c0e14;">Directo 35%</div>
+        <div style="width:40%;background:#c0392b;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">Booking 40%</div>
+        <div style="width:15%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;">Corp 15%</div>
+        <div style="width:10%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">GHA</div>
+      </div>
+      <div style="font-size:11px;color:var(--green);">NRevPAR proyectado con mix óptimo: <strong>+{{ ((0.35 + 0.40*0.85 + 0.15 + 0.10*0.92) * adr / adr - 1 + 0.12)|round(3) * 100|round(1) }}% vs actual</strong></div>
+    </div>
+    <div class="card"><div class="card-t">Estrategia de canales y pauta — IA</div><div class="md-body" id="md-ch">{{ analysis['section_channels'] or '' }}</div></div>
+  </div>
+
+  <!-- SLIDE 8: UPSELL -->
+  <div class="slide" data-label="VIII — Upsell & Xsell">
+    <div class="slide-header">
+      <div class="slide-num">Sección VIII</div>
+      <div class="slide-title">Revenue Opportunities</div>
+      <div class="slide-sub">Upsell · Cross-sell · Ancillary revenue</div>
+    </div>
+    <div class="card"><div class="card-t">Oportunidades de revenue adicional — IA</div><div class="md-body" id="md-up">{{ analysis['section_upsell'] or '' }}</div></div>
+  </div>
+
+  <!-- SLIDE 9: ACTION PLAN -->
+  <div class="slide" data-label="IX — Plan de Acción">
+    <div class="slide-header">
+      <div class="slide-num">Sección IX</div>
+      <div class="slide-title">Action Plan</div>
+      <div class="slide-sub">Acciones concretas ordenadas por impacto · Ejecutar ahora</div>
+    </div>
+    <div class="g3c" style="margin-bottom:16px;">
+      <div class="kpi-card" style="border-left:3px solid var(--red);text-align:left;">
+        <div class="kpi-lbl" style="color:var(--red);">Hoy</div>
+        <div style="font-size:11px;color:#c0c8d8;line-height:1.6;margin-top:6px;">Activar pricing dinámico · tarifa no reembolsable · MinLOS feriados</div>
+      </div>
+      <div class="kpi-card" style="border-left:3px solid var(--warn);text-align:left;">
+        <div class="kpi-lbl" style="color:var(--warn);">7 días</div>
+        <div style="font-size:11px;color:#c0c8d8;line-height:1.6;margin-top:6px;">Email a huéspedes previos · activar Genius · OTA promos</div>
+      </div>
+      <div class="kpi-card" style="border-left:3px solid var(--green);text-align:left;">
+        <div class="kpi-lbl" style="color:var(--green);">30 días</div>
+        <div style="font-size:11px;color:#c0c8d8;line-height:1.6;margin-top:6px;">Google Hotel Ads · canal corporativo · diversificación</div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t">Plan de acción detallado — IA</div><div class="md-body" id="md-ac">{{ analysis['section_action'] or '' }}</div></div>
+  </div>
+
+  <!-- SLIDE 10: KPIs -->
+  <div class="slide" data-label="X — KPIs">
+    <div class="slide-header">
+      <div class="slide-num">Sección X</div>
+      <div class="slide-title">KPIs to Monitor</div>
+      <div class="slide-sub">Métricas clave · Alertas · Targets</div>
+    </div>
+    <div class="g2c" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-t">Revenue mensual: actual vs potencial</div>
+        <div class="ch"><canvas id="chart-kpi-rev"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-t">Ocupación: actual vs objetivo</div>
+        <div style="padding:20px 0;">
+          {% for label, val, color in [
+            ('Actual', occ, '#d4a843'),
+            ('Ciudad avg', city_occ, '#5c9ce0'),
+            ('Target 6m', [city_occ + 5, 85]|min, '#4caf78')
+          ] %}
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:11px;font-weight:600;color:#c0c8d8;">{{ label }}</span>
+              <span style="font-size:13px;font-weight:700;color:{{ color }};">{{ val|round|int }}%</span>
+            </div>
+            <div style="height:8px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:{{ val }}%;background:{{ color }};border-radius:4px;transition:width 1s ease;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t">KPIs objetivo — IA</div><div class="md-body" id="md-kpi">{{ analysis['section_kpis'] or '' }}</div></div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script>
+// ── Slide navigation ──
+var slides = document.querySelectorAll('.slide');
+var cur = 0;
+var total = slides.length;
+var dotsEl = document.getElementById('dots-container');
+
+// Build dots
+if (dotsEl) {
+  for (var i = 0; i < total; i++) {
+    var d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.setAttribute('data-i', i);
+    d.onclick = (function(idx) { return function() { gotoSlide(idx); }; })(i);
+    dotsEl.appendChild(d);
   }
-  activeField = field;
 }
 
-// Set first tab active on load
-showTab('section_dna');
+function gotoSlide(n) {
+  slides[cur].classList.remove('active');
+  dotsEl.querySelectorAll('.dot')[cur].classList.remove('on');
+  cur = n;
+  slides[cur].classList.add('active');
+  dotsEl.querySelectorAll('.dot')[cur].classList.add('on');
+  document.getElementById('slide-label').textContent = slides[cur].getAttribute('data-label') || '';
+  document.getElementById('slide-counter').textContent = (cur+1) + ' / ' + total;
+  document.getElementById('btn-prev').disabled = cur === 0;
+  document.getElementById('btn-next').disabled = cur === total - 1;
+  // Render charts for this slide if needed
+  setTimeout(renderChartsForSlide, 50);
+  // Render markdown
+  renderMarkdown();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
 
-function runAnalysis() {
-  var btn = document.getElementById('analyze-btn');
-  var loading = document.getElementById('loading');
-  var content = document.getElementById('analysis-content');
+function goSlide(dir) { gotoSlide(Math.max(0, Math.min(total-1, cur+dir))); }
 
-  btn.disabled = true;
-  document.getElementById('btn-icon').textContent = '⟳';
-  document.getElementById('btn-text').textContent = 'Analizando...';
-  if (loading) loading.style.display = 'block';
-  if (content) content.style.opacity = '0.3';
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goSlide(1);
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goSlide(-1);
+});
 
-  var csrfToken = document.querySelector('meta[name=csrf-token]');
-  var headers = { 'Content-Type': 'application/json' };
-  if (csrfToken) headers['X-CSRFToken'] = csrfToken.content;
-
-  fetch('{{ url_for("revenue_pro.run_analysis", property_id=prop.id) }}', {
-    method: 'POST',
-    headers: headers,
-    credentials: 'include'
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.ok) {
-      window.location.reload();
-    } else {
-      alert('Error al generar análisis:\n' + (data.error || 'Error desconocido'));
-      btn.disabled = false;
-      document.getElementById('btn-icon').textContent = '✦';
-      document.getElementById('btn-text').textContent = 'Re-generar Análisis';
-      if (loading) loading.style.display = 'none';
-      if (content) content.style.opacity = '1';
+// ── Markdown rendering ──
+function renderMarkdown() {
+  if (typeof marked === 'undefined') return;
+  marked.setOptions({ breaks: true, gfm: true });
+  document.querySelectorAll('.md-body').forEach(function(el) {
+    if (el.getAttribute('data-rendered')) return;
+    var raw = el.textContent || el.innerText;
+    if (raw && raw.trim()) {
+      el.innerHTML = marked.parse(raw);
+      el.setAttribute('data-rendered', '1');
     }
-  })
-  .catch(function(e) {
-    alert('Error de conexión: ' + e.message);
-    btn.disabled = false;
-    document.getElementById('btn-icon').textContent = '✦';
-    document.getElementById('btn-text').textContent = 'Re-generar Análisis';
-    if (loading) loading.style.display = 'none';
-    if (content) content.style.opacity = '1';
   });
 }
 
@@ -362,97 +507,102 @@ function runAnalysis() {
 {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
 {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
 {% set direct = perf.channel_direct_pct if perf else 0 %}
-{% set booking = perf.channel_booking_pct if perf else 100 %}
-{% set expedia = perf.channel_expedia_pct if perf else 0 %}
-{% set corp = perf.channel_corp_pct if perf else 0 %}
-{% set other_ch = [0, (100 - direct - booking - expedia - corp)|round]|max %}
+{% set booking_pct = perf.channel_booking_pct if perf else 100 %}
+{% set expedia_pct = perf.channel_expedia_pct if perf else 0 %}
+{% set corp_pct = perf.channel_corp_pct if perf else 0 %}
+{% set other_ch = [0, (100 - direct - booking_pct - expedia_pct - corp_pct)|round]|max %}
 {% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
 {% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
 {% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
 {% set rooms = prop.room_types.all() %}
 
-window.addEventListener('load', function() {
-  var C = Chart, co = {backgroundColor:'#0c0e14',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',padding:12};
+var charts = {};
+var chartsReady = {};
 
-  // 1. Channel Mix Donut
-  new C(document.getElementById('chart-channels'), {
-    type:'doughnut',
-    data:{
+var co = {backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#aab0be',padding:12};
+
+function mkChart(id, cfg) {
+  if (chartsReady[id]) return;
+  var el = document.getElementById(id);
+  if (!el) return;
+  chartsReady[id] = true;
+  charts[id] = new Chart(el, cfg);
+}
+
+function renderChartsForSlide() {
+  var label = slides[cur].getAttribute('data-label') || '';
+
+  if (label.includes('III')) {
+    mkChart('chart-forecast', {type:'bar',data:{
+      labels:['Próx. 7d','Próx. 14d','Próx. 30d'],
+      datasets:[
+        {label:'ADR recomendado',data:[{{ (adr*1.05)|round|int }},{{ (adr*1.15)|round|int }},{{ (adr*1.0)|round|int }}],backgroundColor:['rgba(76,175,120,0.7)','rgba(212,168,67,0.7)','rgba(96,165,250,0.6)'],borderRadius:6,borderSkipped:false,yAxisID:'y'},
+        {label:'Ocupación esperada %',data:[58,68,52],type:'line',borderColor:'#f0cc7a',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#f0cc7a',tension:.4,yAxisID:'y2'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{labels:{color:'#c0c8d8',font:{size:11},boxWidth:12}},tooltip:co},
+        scales:{
+          y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#c0c8d8',callback:function(v){return '$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}},
+          y2:{position:'right',grid:{display:false},ticks:{color:'#c0c8d8',callback:function(v){return v+'%';}},border:{display:false}},
+          x:{grid:{display:false},ticks:{color:'#c0c8d8'},border:{display:false}}
+        }}
+    });
+  }
+
+  if (label.includes('IV')) {
+    var p = {{ adr }};
+    mkChart('chart-dist', {type:'doughnut',data:{
+      labels:['Floor','Normal','Alta','Rack+'],
+      datasets:[{data:[40,30,20,10],backgroundColor:['rgba(96,165,250,0.7)','rgba(212,168,67,0.65)','rgba(240,204,122,0.75)','rgba(76,175,120,0.7)'],borderWidth:0,hoverOffset:4}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+        plugins:{legend:{position:'right',labels:{color:'#c0c8d8',font:{size:10},boxWidth:10,padding:8}},tooltip:co}}
+    });
+    mkChart('chart-uplift', {type:'line',data:{
+      labels:['Wk1','Wk2','Wk3','Wk4','Wk5'],
+      datasets:[
+        {label:'Precio estático',data:[p,p,p,p,p],borderColor:'rgba(180,180,180,0.4)',borderDash:[5,4],borderWidth:1.5,pointRadius:0},
+        {label:'Precio OMNI',data:[p*1.05,p*1.15,p*1.25,p*1.10,p*1.35],borderColor:'#d4a843',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#d4a843',tension:.4}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c0c8d8',font:{size:10},boxWidth:12}},tooltip:co},
+        scales:{x:{grid:{display:false},ticks:{color:'#c0c8d8'},border:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#c0c8d8',callback:function(v){return '$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
+    });
+  }
+
+  if (label.includes('VII')) {
+    mkChart('chart-ch-actual', {type:'doughnut',data:{
       labels:['Directo','Booking.com','Expedia','Corporativo','Otros'],
-      datasets:[{
-        data:[{{ direct }},{{ booking }},{{ expedia }},{{ corp }},{{ other_ch }}],
-        backgroundColor:['rgba(76,175,120,0.8)','rgba(192,57,43,0.75)','rgba(92,156,224,0.75)','rgba(167,139,250,0.75)','rgba(100,100,100,0.5)'],
-        borderWidth:0, hoverOffset:4
-      }]
-    },
-    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
-      plugins:{legend:{position:'right',labels:{color:'#7a7e8a',font:{size:10},boxWidth:10,padding:8}},
-        tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
-          callbacks:{label:function(i){return ' '+i.label+': '+i.parsed+'%';}}}}}
-  });
+      datasets:[{data:[{{ direct }},{{ booking_pct }},{{ expedia_pct }},{{ corp_pct }},{{ other_ch }}],backgroundColor:['rgba(76,175,120,0.8)','rgba(192,57,43,0.75)','rgba(92,156,224,0.75)','rgba(167,139,250,0.75)','rgba(130,130,130,0.5)'],borderWidth:0,hoverOffset:4}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+        plugins:{legend:{position:'right',labels:{color:'#c0c8d8',font:{size:10},boxWidth:10,padding:6}},tooltip:co}}
+    });
+    var adrV = {{ adr }};
+    mkChart('chart-nrev', {type:'bar',data:{
+      labels:['Booking.com\n(−15%)', 'Google\nHotel Ads\n(−8%)', 'Directo\n(0%)', 'Corporativo\n(negociado)'],
+      datasets:[{data:[Math.round(adrV*0.85),Math.round(adrV*0.92),Math.round(adrV),Math.round(adrV*0.92)],
+        backgroundColor:['rgba(192,57,43,0.7)','rgba(92,156,224,0.7)','rgba(76,175,120,0.8)','rgba(167,139,250,0.7)'],borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{...co,callbacks:{label:function(i){return ' Neto: $'+i.parsed.y.toLocaleString('es-CO')+' {{ prop.currency }}';}}  }},
+        scales:{x:{grid:{display:false},ticks:{color:'#c0c8d8',font:{size:9}},border:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#c0c8d8',callback:function(v){return '$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
+    });
+  }
 
-  // 2. Revenue Comparison
-  new C(document.getElementById('chart-revenue'), {
-    type:'bar',
-    data:{
-      labels:['Revenue Actual','Potencial Ciudad','Gap Oportunidad'],
-      datasets:[{
-        data:[{{ monthly_rev }},{{ potential_rev }},{{ (potential_rev - monthly_rev)|round }}],
-        backgroundColor:['rgba(212,168,67,0.6)','rgba(76,175,120,0.7)','rgba(96,165,250,0.6)'],
-        borderRadius:6, borderSkipped:false
-      }]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
-        callbacks:{label:function(i){var v=i.parsed.y;return ' '+(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+v.toLocaleString('es-CO'));}}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#3a3e4a'},border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#3a3e4a',callback:function(v){return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
-  });
-
-  // 3. Room Types Revenue
-  var rtLabels = [{% for rt in rooms %}'{{ rt.name }}'{% if not loop.last %},{% endif %}{% endfor %}];
-  var rtRevs = [{% for rt in rooms %}{{ rt.monthly_revenue(prop.price_floor) }}{% if not loop.last %},{% endif %}{% endfor %}];
-  new C(document.getElementById('chart-rooms'), {
-    type:'bar',
-    data:{labels:rtLabels,datasets:[{label:'Revenue mensual',data:rtRevs,
-      backgroundColor:['rgba(212,168,67,0.7)','rgba(76,175,120,0.65)','rgba(96,165,250,0.65)','rgba(167,139,250,0.65)','rgba(240,204,122,0.65)'],
-      borderRadius:6,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
-        callbacks:{label:function(i){var v=i.parsed.y;return ' '+(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+v.toLocaleString('es-CO'));}}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#3a3e4a'},border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#3a3e4a',callback:function(v){return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
-  });
-
-  // 4. NRevPAR by channel
-  {% set adr_val = adr %}
-  var nrevLabels = ['Booking.com\n(actual)','Google\nHotel Ads','Directo\nweb/email','Corporativo\nB2B'];
-  var nrevData = [Math.round({{ adr_val }}*0.85), Math.round({{ adr_val }}*0.92), Math.round({{ adr_val }}), Math.round({{ adr_val }}*0.92)];
-  new C(document.getElementById('chart-nrevpar'), {
-    type:'bar',
-    data:{labels:nrevLabels,datasets:[{data:nrevData,
-      backgroundColor:['rgba(192,57,43,0.65)','rgba(96,165,250,0.7)','rgba(76,175,120,0.75)','rgba(167,139,250,0.65)'],
-      borderRadius:6,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
-        callbacks:{label:function(i){return ' Neto: $'+i.parsed.y.toLocaleString('es-CO')+' {{ prop.currency }}';}}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#3a3e4a',font:{size:9}},border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#3a3e4a',callback:function(v){return '$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
-  });
-});
+  if (label.includes('X')) {
+    mkChart('chart-kpi-rev', {type:'bar',data:{
+      labels:['Actual','Potencial\nciudad','Gap\noportunidad'],
+      datasets:[{data:[{{ monthly_rev }},{{ potential_rev }},{{ (potential_rev - monthly_rev)|round }}],
+        backgroundColor:['rgba(212,168,67,0.65)','rgba(76,175,120,0.7)','rgba(96,165,250,0.65)'],borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{...co,callbacks:{label:function(i){var v=i.parsed.y;return ' '+(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+v.toLocaleString('es-CO'));}}}},
+        scales:{x:{grid:{display:false},ticks:{color:'#c0c8d8'},border:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#c0c8d8',callback:function(v){return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
+    });
+  }
+}
 {% endif %}
 
-// Render all markdown sections with marked.js
 window.addEventListener('load', function() {
-  if (typeof marked === 'undefined') return;
-  marked.setOptions({ breaks: true, gfm: true });
-  document.querySelectorAll('.omni-rendered').forEach(function(el) {
-    var raw = el.textContent || el.innerText;
-    if (raw && raw.trim() !== 'Sección no generada. Regenera el análisis.') {
-      el.innerHTML = marked.parse(raw);
-    }
-  });
-  showTab('section_dna');
+  renderMarkdown();
+  renderChartsForSlide();
 });
 </script>
 {% endblock %}
