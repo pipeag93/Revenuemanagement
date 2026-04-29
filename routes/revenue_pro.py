@@ -256,8 +256,10 @@ def analysis(property_id):
 
 
 @revenue_pro_bp.route('/<int:property_id>/analyze', methods=['POST'])
-@login_required
 def run_analysis(property_id):
+    from flask_login import current_user
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Sesión expirada. Recarga la página e inicia sesión de nuevo.'}), 401
     prop = OmniProperty.query.get_or_404(property_id)
     if not _can_access(prop):
         return jsonify({'error': 'Sin acceso'}), 403
