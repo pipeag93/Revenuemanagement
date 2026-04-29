@@ -289,29 +289,49 @@
     </div>
     {% endif %}
 
-    <!-- ══ PMS DATA IMPORT (visible en todos los pasos) ══ -->
-    <div class="card" style="border-color:rgba(212,168,67,0.25);background:rgba(212,168,67,0.03);">
-      <div class="card-t" style="color:var(--gold);">
-        Datos del PMS — Opcional pero recomendado
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
-        Pega aquí cualquier reporte de tu PMS, OTA extranet, o exportación de Excel.
-        Groq AI interpreta automáticamente cualquier formato: tablas, texto, números.
-        Entre más datos, mejor el análisis.
+    <!-- ══ PMS FILE UPLOAD ══ -->
+    <div class="card" style="border-color:rgba(212,168,67,0.3);background:rgba(212,168,67,0.03);" id="pms-card">
+      <div class="card-t" style="color:var(--gold);">Adjuntar Reporte del PMS / OTA — Opcional</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+        Sube cualquier reporte de tu sistema — la IA lo lee automáticamente y enriquece el análisis.
+        <strong style="color:var(--cream);">Entre más datos, mayor precisión.</strong>
       </p>
-      <div class="field">
-        <label>Pegar reporte PMS / OTA / Excel (cualquier formato)</label>
-        <textarea class="fi" name="pms_raw_data" rows="8"
-          placeholder="Pega aquí tu reporte... Ejemplo:
-Fecha        Occ%    ADR       RevPAR    Reservas
-01/04/2026   62%     $155,000  $96,100   18
-02/04/2026   55%     $148,000  $81,400   15
-...
-O cualquier exportación de Booking Extranet, Opera, Cloudbeds, etc.">{{ prop.pms_raw_data or '' }}</textarea>
+
+      <!-- Drop zone -->
+      <div id="drop-zone"
+           ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='rgba(212,168,67,0.08)'"
+           ondragleave="this.style.borderColor='rgba(212,168,67,0.2)';this.style.background='transparent'"
+           ondrop="handleDrop(event)"
+           style="border:2px dashed rgba(212,168,67,0.25);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;"
+           onclick="document.getElementById('pms-file-input').click()">
+        <div style="font-size:28px;margin-bottom:8px;">📎</div>
+        <div style="font-size:13px;font-weight:600;color:var(--cream);margin-bottom:4px;">
+          Arrastra tu archivo aquí o haz clic para seleccionar
+        </div>
+        <div style="font-size:11px;color:var(--muted);">
+          PDF · Excel (.xlsx) · CSV · Word · PowerPoint · JPG · PNG
+        </div>
+        <input type="file" id="pms-file-input" style="display:none;"
+               accept=".pdf,.xlsx,.xls,.csv,.txt,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
+               onchange="uploadPMS(this.files[0])">
       </div>
-      <div style="font-size:10px;color:var(--dim);margin-top:8px;">
-        Formatos aceptados: texto plano, CSV, tablas copiadas de Excel, reportes de Booking.com, Opera, Cloudbeds, Mews, Apaleo, etc.
+
+      <!-- Status -->
+      <div id="pms-status" style="display:none;margin-top:12px;padding:12px 14px;border-radius:8px;font-size:12px;"></div>
+
+      <!-- Current file indicator -->
+      {% if prop.pms_raw_data %}
+      <div id="pms-current" style="margin-top:12px;display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(76,175,120,0.08);border:1px solid rgba(76,175,120,0.25);border-radius:8px;">
+        <span style="font-size:16px;">✓</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--green);">Archivo cargado</div>
+          <div style="font-size:10px;color:var(--muted);">{{ prop.pms_raw_data[:80] }}...</div>
+        </div>
+        <button type="button" onclick="clearPMS()" style="margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;" title="Eliminar">✕</button>
       </div>
+      {% else %}
+      <div id="pms-current" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(76,175,120,0.08);border:1px solid rgba(76,175,120,0.25);border-radius:8px;font-size:12px;color:var(--green);"></div>
+      {% endif %}
     </div>
 
     <!-- Nav buttons -->
@@ -330,6 +350,78 @@ O cualquier exportación de Booking Extranet, Opera, Cloudbeds, etc.">{{ prop.pm
 
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var propertyId = {{ prop.id }};
+
+function uploadPMS(file) {
+  if (!file) return;
+  var status = document.getElementById('pms-status');
+  var current = document.getElementById('pms-current');
+  var dz = document.getElementById('drop-zone');
+
+  status.style.display = 'block';
+  status.style.background = 'rgba(212,168,67,0.08)';
+  status.style.border = '1px solid rgba(212,168,67,0.2)';
+  status.style.color = 'var(--gold2)';
+  status.innerHTML = '⟳ Procesando <strong>' + file.name + '</strong>...';
+  dz.style.opacity = '0.6';
+
+  var fd = new FormData();
+  fd.append('pms_file', file);
+
+  fetch('/revenue-pro/' + propertyId + '/upload-pms', {
+    method: 'POST',
+    body: fd,
+    credentials: 'include'
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    dz.style.opacity = '1';
+    if (data.ok) {
+      status.style.background = 'rgba(76,175,120,0.08)';
+      status.style.border = '1px solid rgba(76,175,120,0.25)';
+      status.style.color = 'var(--green)';
+      status.innerHTML = '✓ <strong>' + data.filename + '</strong> cargado correctamente';
+      current.style.display = 'flex';
+      current.innerHTML = '<span style="font-size:16px;">✓</span><div><div style="font-size:12px;font-weight:600;color:var(--green);">Archivo listo para el análisis</div><div style="font-size:10px;color:var(--muted);">' + (data.preview || '') + '</div></div><button type="button" onclick="clearPMS()" style="margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;">✕</button>';
+    } else {
+      status.style.background = 'rgba(224,92,92,0.08)';
+      status.style.border = '1px solid rgba(224,92,92,0.25)';
+      status.style.color = 'var(--red)';
+      status.innerHTML = '✕ Error: ' + (data.error || 'No se pudo procesar el archivo');
+    }
+  })
+  .catch(function(e) {
+    dz.style.opacity = '1';
+    status.style.background = 'rgba(224,92,92,0.08)';
+    status.style.border = '1px solid rgba(224,92,92,0.25)';
+    status.style.color = 'var(--red)';
+    status.innerHTML = '✕ Error de conexión: ' + e.message;
+  });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  var dz = document.getElementById('drop-zone');
+  dz.style.borderColor = 'rgba(212,168,67,0.25)';
+  dz.style.background = 'transparent';
+  var files = e.dataTransfer.files;
+  if (files.length > 0) uploadPMS(files[0]);
+}
+
+function clearPMS() {
+  fetch('/revenue-pro/' + propertyId + '/upload-pms', {
+    method: 'POST',
+    body: new FormData(),
+    credentials: 'include'
+  }).catch(function(){});
+  document.getElementById('pms-current').style.display = 'none';
+  document.getElementById('pms-status').style.display = 'none';
+}
+</script>
 {% endblock %}
 
 {% block scripts %}

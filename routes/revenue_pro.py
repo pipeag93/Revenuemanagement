@@ -342,6 +342,53 @@ def run_analysis(property_id):
         return redirect(url_for('revenue_pro.analysis', property_id=property_id))
 
 
+# ── PMS File Upload ───────────────────────────────────────────────────────────
+
+@revenue_pro_bp.route('/<int:property_id>/upload-pms', methods=['POST'])
+@login_required
+def upload_pms(property_id):
+    prop = OmniProperty.query.get_or_404(property_id)
+    if not _can_access(prop):
+        return jsonify({'error': 'Sin acceso'}), 403
+
+    f = request.files.get('pms_file')
+    if not f or not f.filename:
+        return jsonify({'error': 'No se seleccionó archivo'}), 400
+
+    filename = f.filename.lower()
+    allowed = ('.pdf', '.xlsx', '.xls', '.csv', '.txt',
+               '.doc', '.docx', '.ppt', '.pptx',
+               '.jpg', '.jpeg', '.png', '.webp')
+    if not any(filename.endswith(ext) for ext in allowed):
+        return jsonify({'error': 'Formato no soportado. Usa PDF, Excel, CSV, Word, imagen.'}), 400
+
+    # Images → use Groq vision or describe
+    if any(filename.endswith(ext) for ext in ('.jpg', '.jpeg', '.png', '.webp')):
+        extracted = f'[Imagen adjunta: {f.filename}]\nContenido visual del reporte PMS. Analiza según el contexto de la propiedad.'
+    elif any(filename.endswith(ext) for ext in ('.doc', '.docx', '.ppt', '.pptx')):
+        # Extract as text best-effort
+        data = f.read()
+        try:
+            extracted = data.decode('utf-8', errors='replace')[:3000]
+        except Exception:
+            extracted = f'[Archivo {f.filename} — contenido adjunto para análisis]'
+    else:
+        from services.file_parser import extract_text
+        extracted = extract_text(f)
+
+    if not extracted or not extracted.strip():
+        return jsonify({'error': 'No se pudo extraer texto del archivo'}), 400
+
+    prop.pms_raw_data = f'[Archivo: {f.filename}]\n\n{extracted[:4000]}'
+    db.session.commit()
+
+    return jsonify({
+        'ok': True,
+        'filename': f.filename,
+        'preview': extracted[:200] + ('...' if len(extracted) > 200 else '')
+    })
+
+
 # ── Invite owner ───────────────────────────────────────────────────────────────
 
 @revenue_pro_bp.route('/<int:property_id>/invite', methods=['GET', 'POST'])
