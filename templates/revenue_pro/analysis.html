@@ -100,6 +100,118 @@
       </div>
     </div>
 
+    <!-- ══ VISUAL DASHBOARD ══ -->
+    {% set perf = prop.performance %}
+    {% set rooms = prop.room_types.all() %}
+    {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
+    {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
+    {% set direct = perf.channel_direct_pct if perf else 0 %}
+    {% set booking = perf.channel_booking_pct if perf else 100 %}
+    {% set expedia = perf.channel_expedia_pct if perf else 0 %}
+    {% set corp = perf.channel_corp_pct if perf else 0 %}
+    {% set other = (100 - direct - booking - expedia - corp)|round %}
+    {% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
+    {% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
+    {% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
+
+    <!-- KPI Cards -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+      <div style="background:var(--card);border:1px solid var(--b2);border-top:3px solid var(--red);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">Ocupación Actual</div>
+        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--warn);">{{ occ|int }}%</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">{{ prop.total_rooms }} hab × 30 días</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--b2);border-top:3px solid var(--gold);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">ADR</div>
+        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--gold2);">{{ '{:,.0f}'.format(adr) }}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">{{ prop.currency }} tarifa promedio</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--b2);border-top:3px solid var(--green);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">Revenue Mensual</div>
+        <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--green);">
+          {% if monthly_rev >= 1000000 %}{{ (monthly_rev/1000000)|round(1) }}M{% else %}{{ '{:,.0f}'.format(monthly_rev) }}{% endif %}
+        </div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">{{ prop.currency }} actual</div>
+      </div>
+      <div style="background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.3);border-top:3px solid var(--gold2);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-bottom:8px;">Potencial (avg ciudad)</div>
+        <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold2);">
+          {% if potential_rev >= 1000000 %}{{ (potential_rev/1000000)|round(1) }}M{% else %}{{ '{:,.0f}'.format(potential_rev) }}{% endif %}
+        </div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">al {{ city_occ|int }}% ocupación ciudad</div>
+      </div>
+    </div>
+
+    <!-- Charts Row 1: Channel Mix + Revenue Gap -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+      <!-- Channel Mix Donut -->
+      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Mix de Canales Actual</div>
+        <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;">
+          <canvas id="chart-channels"></canvas>
+        </div>
+        {% if direct == 0 and booking >= 90 %}
+        <div style="margin-top:12px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--red);">
+          ⚠ Dependencia crítica: {{ booking|int }}% en un solo canal. Comisión: −15% = {{ '{:,.0f}'.format(adr * 0.15) }} {{ prop.currency }}/noche perdida.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Revenue Comparison Bar -->
+      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Revenue: Actual vs Potencial ({{ prop.currency }})</div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chart-revenue"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2: Room Types + Occupancy Gauge -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+      <!-- Room Types Revenue Bar -->
+      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Revenue por Tipo de Habitación/mes</div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chart-rooms"></canvas>
+        </div>
+      </div>
+
+      <!-- Channel NRevPAR Comparison -->
+      <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">NRevPAR Neto por Canal ({{ prop.currency }})</div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chart-nrevpar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rate Plans Visual -->
+    <div style="background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--b2);">Estructura de Tarifas por Canal · Floor: {{ '{:,.0f}'.format(prop.price_floor) }} {{ prop.currency }}</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
+        {% set bar = (prop.price_floor * 1.25)|round|int %}
+        {% set nrefund = (bar * 0.85)|round|int %}
+        {% set early = (bar * 0.90)|round|int %}
+        {% set direct_rate = (bar * 0.92)|round|int %}
+        {% set rack = (bar * 1.35)|round|int %}
+        {% for label, rate, color, note in [
+          ('Floor / Mín', prop.price_floor|int, '#5c9ce0', 'Propietario'),
+          ('BAR (OTA)', bar, '#d4a843', 'Tarifa base'),
+          ('No Reembolsable', nrefund, '#f0cc7a', '−15% BAR'),
+          ('Directo ★', direct_rate, '#4caf78', '−8% · 0% comisión'),
+          ('Rack / Pico', rack, '#e05c5c', '+35% alta demanda')
+        ] %}
+        <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;border-top:3px solid {{ color }};">
+          <div style="font-size:9px;font-weight:700;color:{{ color }};text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">{{ label }}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--cream);">{{ '{:,.0f}'.format(rate) }}</div>
+          <div style="font-size:9px;color:var(--dim);margin-top:3px;">{{ note }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
     <!-- Section tabs -->
     {% set sections = [
       ('section_dna',          'I — DNA Profile',         'var(--gold)'),
@@ -243,6 +355,92 @@ function runAnalysis() {
     if (content) content.style.opacity = '1';
   });
 }
+
+// ── Charts ──
+{% if analysis %}
+{% set perf = prop.performance %}
+{% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
+{% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
+{% set direct = perf.channel_direct_pct if perf else 0 %}
+{% set booking = perf.channel_booking_pct if perf else 100 %}
+{% set expedia = perf.channel_expedia_pct if perf else 0 %}
+{% set corp = perf.channel_corp_pct if perf else 0 %}
+{% set other_ch = [0, (100 - direct - booking - expedia - corp)|round]|max %}
+{% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
+{% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
+{% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
+{% set rooms = prop.room_types.all() %}
+
+window.addEventListener('load', function() {
+  var C = Chart, co = {backgroundColor:'#0c0e14',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',padding:12};
+
+  // 1. Channel Mix Donut
+  new C(document.getElementById('chart-channels'), {
+    type:'doughnut',
+    data:{
+      labels:['Directo','Booking.com','Expedia','Corporativo','Otros'],
+      datasets:[{
+        data:[{{ direct }},{{ booking }},{{ expedia }},{{ corp }},{{ other_ch }}],
+        backgroundColor:['rgba(76,175,120,0.8)','rgba(192,57,43,0.75)','rgba(92,156,224,0.75)','rgba(167,139,250,0.75)','rgba(100,100,100,0.5)'],
+        borderWidth:0, hoverOffset:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{color:'#7a7e8a',font:{size:10},boxWidth:10,padding:8}},
+        tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
+          callbacks:{label:function(i){return ' '+i.label+': '+i.parsed+'%';}}}}}
+  });
+
+  // 2. Revenue Comparison
+  new C(document.getElementById('chart-revenue'), {
+    type:'bar',
+    data:{
+      labels:['Revenue Actual','Potencial Ciudad','Gap Oportunidad'],
+      datasets:[{
+        data:[{{ monthly_rev }},{{ potential_rev }},{{ (potential_rev - monthly_rev)|round }}],
+        backgroundColor:['rgba(212,168,67,0.6)','rgba(76,175,120,0.7)','rgba(96,165,250,0.6)'],
+        borderRadius:6, borderSkipped:false
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
+        callbacks:{label:function(i){var v=i.parsed.y;return ' '+(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+v.toLocaleString('es-CO'));}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#3a3e4a'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#3a3e4a',callback:function(v){return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
+  });
+
+  // 3. Room Types Revenue
+  var rtLabels = [{% for rt in rooms %}'{{ rt.name }}'{% if not loop.last %},{% endif %}{% endfor %}];
+  var rtRevs = [{% for rt in rooms %}{{ rt.monthly_revenue(prop.price_floor) }}{% if not loop.last %},{% endif %}{% endfor %}];
+  new C(document.getElementById('chart-rooms'), {
+    type:'bar',
+    data:{labels:rtLabels,datasets:[{label:'Revenue mensual',data:rtRevs,
+      backgroundColor:['rgba(212,168,67,0.7)','rgba(76,175,120,0.65)','rgba(96,165,250,0.65)','rgba(167,139,250,0.65)','rgba(240,204,122,0.65)'],
+      borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
+        callbacks:{label:function(i){var v=i.parsed.y;return ' '+(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+v.toLocaleString('es-CO'));}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#3a3e4a'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#3a3e4a',callback:function(v){return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
+  });
+
+  // 4. NRevPAR by channel
+  {% set adr_val = adr %}
+  var nrevLabels = ['Booking.com\n(actual)','Google\nHotel Ads','Directo\nweb/email','Corporativo\nB2B'];
+  var nrevData = [Math.round({{ adr_val }}*0.85), Math.round({{ adr_val }}*0.92), Math.round({{ adr_val }}), Math.round({{ adr_val }}*0.92)];
+  new C(document.getElementById('chart-nrevpar'), {
+    type:'bar',
+    data:{labels:nrevLabels,datasets:[{data:nrevData,
+      backgroundColor:['rgba(192,57,43,0.65)','rgba(96,165,250,0.7)','rgba(76,175,120,0.75)','rgba(167,139,250,0.65)'],
+      borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#13161f',borderColor:'rgba(212,168,67,0.2)',borderWidth:1,titleColor:'#ede8dc',bodyColor:'#7a7e8a',
+        callbacks:{label:function(i){return ' Neto: $'+i.parsed.y.toLocaleString('es-CO')+' {{ prop.currency }}';}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#3a3e4a',font:{size:9}},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#3a3e4a',callback:function(v){return '$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}}}}
+  });
+});
+{% endif %}
 
 // Render all markdown sections with marked.js
 window.addEventListener('load', function() {
