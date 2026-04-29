@@ -137,7 +137,7 @@
         <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:{{ color }};margin-bottom:14px;">
           {{ label }}
         </div>
-        <div class="omni-md">{{ analysis[field] or 'Sección no generada. Regenera el análisis.' }}</div>
+        <div class="omni-rendered" id="rendered-{{ field }}">{{ analysis[field] or 'Sección no generada. Regenera el análisis.' }}</div>
       </div>
       {% endfor %}
     </div>
@@ -146,6 +146,28 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<style>
+  .omni-rendered { font-size:13px; color:var(--muted); line-height:1.9; }
+  .omni-rendered h1,.omni-rendered h2 { font-family:'Playfair Display',serif; color:var(--gold2); font-size:17px; font-weight:600; margin:20px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--b2); }
+  .omni-rendered h3 { color:var(--cream); font-size:14px; font-weight:600; margin:14px 0 6px; }
+  .omni-rendered p { margin-bottom:10px; }
+  .omni-rendered strong { color:var(--cream); font-weight:700; }
+  .omni-rendered ul,.omni-rendered ol { margin:8px 0 8px 20px; }
+  .omni-rendered li { margin-bottom:6px; }
+  .omni-rendered table { width:100%; border-collapse:collapse; margin:14px 0; font-size:12px; }
+  .omni-rendered th { background:rgba(212,168,67,0.1); color:var(--gold); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; padding:10px 14px; text-align:left; border:1px solid var(--b2); }
+  .omni-rendered td { padding:10px 14px; border:1px solid var(--b2); color:var(--cream); vertical-align:top; }
+  .omni-rendered tr:hover td { background:rgba(212,168,67,0.03); }
+  .omni-rendered code { background:rgba(212,168,67,0.08); color:var(--gold2); padding:2px 6px; border-radius:4px; font-size:11px; }
+  .omni-rendered blockquote { border-left:3px solid var(--gold); padding-left:12px; color:var(--muted); font-style:italic; margin:10px 0; }
+  .omni-rendered hr { border:none; border-top:1px solid var(--b2); margin:16px 0; }
+  /* Highlight numbers in gold */
+  .omni-rendered td:nth-child(2),.omni-rendered td:nth-child(3),.omni-rendered td:nth-child(4) { color:var(--gold2); font-weight:600; }
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -221,5 +243,18 @@ function runAnalysis() {
     if (content) content.style.opacity = '1';
   });
 }
+
+// Render all markdown sections with marked.js
+window.addEventListener('load', function() {
+  if (typeof marked === 'undefined') return;
+  marked.setOptions({ breaks: true, gfm: true });
+  document.querySelectorAll('.omni-rendered').forEach(function(el) {
+    var raw = el.textContent || el.innerText;
+    if (raw && raw.trim() !== 'Sección no generada. Regenera el análisis.') {
+      el.innerHTML = marked.parse(raw);
+    }
+  });
+  showTab('section_dna');
+});
 </script>
 {% endblock %}
