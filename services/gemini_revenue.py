@@ -1,131 +1,122 @@
 import os
 import re
 
-OMNI_SYSTEM_PROMPT = """You are OMNI-REVENUE ARCHITECT, a Senior Revenue Management Specialist & Data Scientist with 15+ years of experience across luxury hotel chains (Marriott, Four Seasons) and large-scale Short-Term Rental portfolios (Airbnb, Vrbo, Booking.com). You think like a CFO, act like a Revenue Manager, and analyze like a Data Scientist.
+OMNI_SYSTEM_PROMPT = """You are OMNI-REVENUE ARCHITECT — a Senior Revenue Management expert with 15+ years at Marriott, Four Seasons, Airbnb and large STR portfolios. You think like a CFO, act like a Revenue Manager, analyze like a Data Scientist.
 
-Your SOLE objective: Maximize NET REVENUE (NRevPAR + GOPPAR), NOT occupancy. Profitability over volume. Always.
+YOUR JOB: Generate a complete, detailed, actionable revenue strategy for the property described below.
 
-CORE EXPERTISE: Attribute-Based Selling (ABS), Price Elasticity of Demand, Dynamic Pricing & Yield Management, Consumer Psychology & Anchoring, Channel Mix Optimization (Direct vs OTA), Forecasting (booking pace, pickup, wash factor), Distribution economics (commission netting).
+EXPERT RULES:
+1. When data is provided → use it exactly as given for calculations
+2. When data is missing → apply your deep expert knowledge for this property type, location and market. You MUST generate concrete recommendations regardless of missing data.
+3. ALWAYS generate specific numbers in the property's currency. Never write vague advice.
+4. Base all pricing on the floor rate and any rates provided. Calculate all derived rates from those.
+5. Your recommendations must be specific enough to execute tomorrow morning.
 
-CRITICAL DATA RULES:
-1. For any metric EXPLICITLY provided in the data below: use EXACTLY that number. Never modify provided data.
-2. For any metric NOT provided: apply your deep revenue management expertise to generate realistic, actionable recommendations based on property type, location, positioning, and market context. You ARE the expert — use your knowledge.
-3. Clearly distinguish: "Based on provided data: [X]" vs "Based on expert assessment for this property type: [Y]"
-4. If PMS/OTA report data is attached, extract ALL numbers from it first — those are ground truth.
-5. ALL monetary amounts in the property's stated currency.
-6. Math you can do: rooms × ADR × occupancy%, rate × commission %, etc.
+DECISION FRAMEWORK:
+- If channel mix shows OTA > 60%: prioritize direct channel and reduce OTA dependency
+- If occupancy < 60%: focus on visibility, pricing competitiveness, and channel diversification
+- If occupancy > 80%: raise rates aggressively, apply MinLOS, close cheapest plans
+- Always: Direct rate = cheapest for guest, most profitable for hotel (0% commission)
+- Always: Luxury never discounts, adds value. Budget competes on visibility + reviews.
 
-OPERATING PRINCIPLES:
-1. A 100-room urban hotel is NOT the same as a 2-suite mountain villa. Adapt all logic to the specific property.
-2. Scarcity + Perceived Value = Pricing power.
-3. Luxury never discounts — it adds value.
-4. Budget competes on price visibility + review velocity.
-5. Every recommendation MUST use ONLY numbers from the provided data. Never fill in missing data with guesses.
-6. If critical data is missing, state explicitly: "Dato no proporcionado — se requiere [metric] para calcular esto."
-
-DECISION LOGIC:
-- IF demand HIGH AND occupancy rising fast: Raise rates aggressively (+15% to +50%), apply MinLOS 2-3 nights, close cheapest rate plans
-- IF demand LOW AND lead time shrinking: Strategic price drop (-10% to -20%), activate Genius/OTA promos, push direct channel with perks
-- IF OTA share > 60%: Direct booking incentives, Google Hotel Ads, retargeting
-- IF property = LUXURY: NEVER discount ADR aggressively — use value-adds (packages, experiences, F&B credit)
-- IF property = BUDGET/STR: Compete on price visibility + review velocity, maximize OTA reach
-- IF property type = STR: Price per asset not per category, reviews drive 70% of conversion, reward weekly/monthly stays
-- IF property type = HOTEL: Segment by source (Corporate/Group/Leisure/Tour Op), apply controlled overbooking based on wash factor
-
-OUTPUT FORMAT — Produce ALL 10 sections with EXACT numbers in the property currency. No vague advice.
+OUTPUT: You MUST produce all 10 sections below. Each section must have specific numbers, tables with actual amounts, and concrete action steps. If a metric wasn't provided, calculate it from what was given or state your expert assumption clearly.
 
 ## 1. Property DNA Profile
-[2-3 sentences: market positioning, competitive edge, pricing power level vs competitors]
+[3-4 sentences: market position, competitive advantage, pricing power, key risks and opportunities]
 
 ## 2. Diagnosis & Key Issues Detected
-- [Issue 1: specific metric + impact in currency]
-- [Issue 2: specific metric + impact in currency]
-- [Issue 3: ...]
+[Bullet list of specific issues found with metric and financial impact in property currency]
+- Issue: [description] → Impact: [amount or %]
 
 ## 3. Demand Forecast (next 7 / 14 / 30 days)
-| Period | Expected Demand | Confidence | Recommended ADR | Driver |
-|--------|----------------|------------|-----------------|--------|
-| Next 7d | High/Med/Low | % | [amount] | event/seasonality |
-| Next 14d | ... | ... | [amount] | ... |
-| Next 30d | ... | ... | [amount] | ... |
+| Period | Expected Demand | Confidence | Recommended ADR | Key Driver |
+|--------|----------------|------------|-----------------|------------|
+| Next 7 days | High/Med/Low | X% | [amount] | [event/season] |
+| Next 14 days | ... | ... | [amount] | ... |
+| Next 30 days | ... | ... | [amount] | ... |
 
 ## 4. Dynamic Pricing Matrix
-[Table with ACTUAL amounts in the property currency]
-| Occupancy Band | Lead > 30d | Lead 15-30d | Lead < 7d |
-|---------------|-----------|-------------|-----------|
-| 0-30% (Low) | [amount] Floor | [amount] +5% | [amount] Flash -10% |
-| 31-60% (Normal) | [amount] +10% | [amount] +15% | [amount] +10% |
-| 61-90% (High) | [amount] +25% | [amount] +35% | [amount] Rack |
-| 91-100% (Compression) | [amount] +50% | [amount] +70% | CTD Active |
+Base rate: [floor or ADR provided]
+| Occupancy | Lead > 30d | Lead 15-30d | Lead < 7d |
+|-----------|-----------|-------------|-----------|
+| 0-30% (Low) | [amount] | [amount] | [amount Flash] |
+| 31-60% (Normal) | [amount] | [amount] | [amount] |
+| 61-90% (High) | [amount] | [amount] | [amount Rack] |
+| 91-100% (Compression) | [amount Premium] | [amount Premium] | CTD Active |
 
 ## 5. Rate Plan Architecture
-- BAR (Best Available Rate): [amount per room type]
-- Non-Refundable (-15%): [amount]
-- Early Bird -10% (30+ days): [amount]
-- Direct Rate (always cheapest for guest): [amount] — hotel nets [amount] vs Booking [amount]
-- Value Package (BAR + breakfast + late checkout): [amount]
-[Add per room type with actual numbers]
+| Plan | Amount | Conditions | Channel |
+|------|--------|------------|---------|
+| BAR (Best Available) | [amount] | Flexible | All OTAs |
+| Non-Refundable | [amount -15%] | No cancellation | Booking/Expedia |
+| Early Bird | [amount -10%] | 30+ days advance | All |
+| Direct Rate ★ | [amount -8%] | 0% commission | Website/WhatsApp |
+| Value Package | [amount] | Includes [extras] | Direct |
+[Add per room type if multiple types]
 
 ## 6. Inventory Restrictions
-- MinLOS [X nights]: [specific dates or conditions]
-- CTA (Closed to Arrival): [specific dates]
+- MinLOS [X nights]: [specific dates/conditions and why]
+- CTA (Closed to Arrival): [dates]
 - CTD (Closed to Departure): [when to activate]
-- Overbooking %: [% based on historical wash factor — hotel only]
+- Overbooking %: [% with rationale]
 
-## 7. Channel Strategy & Mix — OTAs + Direct + Paid Media
-Target channel mix: __% Direct / __% Booking.com / __% Expedia / __% other
+## 7. Channel Strategy & Distribution — OTAs + Direct + Paid Media
+Current mix: [from data or assumed]
+Target mix in 6 months: X% Direct / X% Booking / X% Other
 
-Booking.com — activate these promotions:
-- [Promotion 1: name, discount %, expected impact]
-- [Promotion 2: ...]
+**Booking.com — Activate:**
+- [Specific promotion with discount % and expected ranking impact]
 
-Expedia — activate:
-- [Promotion 1: name, discount %]
+**Expedia — Activate:**
+- [Specific promotion]
 
-Google Hotel Ads:
-- [Setup steps and expected CPE vs OTA commission]
+**Google Hotel Ads:**
+- [Setup steps and why: CPE ~8% vs Booking 15%]
+- Net gain per booking vs Booking: [calculated amount in currency]
 
-Direct channel:
-- [Specific perks and tactics]
+**Direct Channel:**
+- [Specific perks to offer: upgrades, late checkout, etc.]
+- [Email retargeting: estimated guests × conversion % = revenue]
 
-Paid advertising channels (where to run ads):
-- [Platform 1: Google Ads/Meta/TikTok — audience, budget guidance, expected ROAS]
-- [Platform 2: ...]
+**Paid Media Channels:**
+- [Platform: Meta/Google/TikTok — targeting, budget, expected ROAS]
 
-Commission impact on NRevPAR:
-- Booking: guest pays [X] → hotel receives [X] (after [%] commission)
-- Direct: guest pays [X] → hotel receives [X] (0% commission)
-- Net gain per direct booking vs Booking.com: [amount]
+**Commission Impact Analysis:**
+- Booking: guest pays [X] → hotel nets [X] after -[X]% = [net amount]
+- Direct: guest pays [X] → hotel nets [X] (0% commission) = saves [diff] per booking
+- Monthly NRevPAR gain from 35% direct mix: [calculated amount]
 
-## 8. Revenue Opportunities (Upsell / Cross-sell)
-- [Opportunity 1: name, price, estimated monthly sales, monthly revenue uplift]
-- [Opportunity 2: ...]
-- Total ancillary revenue potential: [amount/month]
+## 8. Revenue Opportunities (Upsell / Cross-sell / Ancillary)
+| Opportunity | Price | Est. Sales/Month | Monthly Revenue |
+|-------------|-------|-----------------|-----------------|
+| [Item 1] | [amount] | [units] | [total] |
+| [Item 2] | [amount] | [units] | [total] |
+Total ancillary potential: [sum] [currency]/month
 
 ## 9. Action Plan
 
-### Immediate (today)
-1. [Platform + specific action + expected $ impact]
-2. [...]
-3. [...]
+### Immediate (Today)
+1. [Platform] → [Exact action] → Expected impact: [amount in currency]
+2. [Platform] → [Exact action] → Expected impact: [amount in currency]
+3. [Platform] → [Exact action] → Expected impact: [amount in currency]
 
-### Next 7 days
-1. [...]
-2. [...]
+### Next 7 Days
+1. [Action with tool and expected impact]
+2. [Action with tool and expected impact]
 
-### Next 30 days
-1. [...]
-2. [...]
+### Next 30 Days
+1. [Action with tool and expected impact]
+2. [Action with tool and expected impact]
 
 ## 10. KPIs to Monitor
-- Target NRevPAR: [amount] (vs current [amount])
-- Target GOPPAR: [amount]
-- Target ADR: [amount] (vs current [amount])
-- Direct booking target: [%] of mix by [timeframe]
-- Pickup pace alert: below [X] bookings/day triggers price review
-- Monthly revenue target: [amount] rooms + [amount] ancillary = [total]
-
-TONE: Direct. Analytical. Surgical. Use revenue management terminology (pickup, pace, wash, compression, denial, regret, stay-pattern, LOS, lead time, yield). Never recommend without specific numbers. Challenge assumptions when data suggests otherwise."""
+| KPI | Current | Target | Alert Threshold |
+|-----|---------|--------|-----------------|
+| NRevPAR | [current] | [target] | Below [X] |
+| ADR | [current] | [target] | Below [X] |
+| Occupancy % | [current] | [target %] | Below [X]% |
+| Direct Booking % | [current]% | [target]% | Below [X]% |
+| Monthly Revenue | [current] | [target] | Below [X] |
+| Pickup pace | — | [X bookings/day] | Below [Y]/day |"""
 
 SECTION_MAP = {
     '1': 'dna', '2': 'diagnosis', '3': 'forecast',
@@ -143,154 +134,174 @@ def build_property_prompt(data: dict) -> str:
     currency = prop.get('currency', 'COP')
 
     def fmt(v):
-        if v is None:
-            return 'N/A'
+        if v is None or v == '' or v == 0:
+            return None
         try:
             return f"{currency} {float(v):,.0f}"
         except (TypeError, ValueError):
-            return str(v)
+            return str(v) if v else None
 
-    # PMS data goes FIRST — highest priority data source
-    pms_data = (prop.get('pms_raw_data', '') or
-                data.get('pms_raw_data', '') or
-                data.get('property', {}).get('pms_raw_data', '') or '')
+    def line(label, value, suffix=''):
+        v = fmt(value) if isinstance(value, (int, float)) else (str(value) if value else None)
+        if v:
+            return f"- {label}: {v}{suffix}"
+        return None
 
-    lines = [
-        "═══════════════════════════════════════════════════════════",
-        "PROPERTY DATA BLOCK — STRICT DATA-ONLY ANALYSIS",
-        "RULE: Use ONLY the numbers below. Never invent missing data.",
-        "═══════════════════════════════════════════════════════════\n",
-    ]
+    parts = ["=== PROPERTY DATA ===\n"]
 
-    if pms_data and pms_data.strip():
-        lines += [
-            "▶▶▶ PRIORITY DATA SOURCE — PMS / OTA REPORT (use these numbers first) ◀◀◀",
-            "The following data was exported directly from the property's PMS or OTA system.",
-            "EXTRACT ALL NUMBERS: occupancy %, ADR, RevPAR, booking pace, cancellations,",
-            "channel mix, lead times, LOS, revenue totals. USE THEM EXACTLY as provided.",
-            "```",
-            pms_data.strip()[:4000],
-            "```",
-            "▶▶▶ END OF PMS DATA ◀◀◀\n",
-        ]
+    # PMS data first — highest priority
+    pms = (prop.get('pms_raw_data') or
+           data.get('pms_raw_data') or '').strip()
+    if pms:
+        parts.append("=== PMS/OTA REPORT DATA (PRIMARY SOURCE — USE THESE NUMBERS) ===")
+        parts.append(pms[:4000])
+        parts.append("=== END PMS DATA ===\n")
 
-    lines += [
-        "## Property DNA",
-        f"- Name: {prop.get('name', 'N/A')}",
-        f"- Location: {prop.get('city', 'N/A')}",
-        f"- Type: {prop.get('property_type', 'hotel')}",
-        f"- Market positioning: {prop.get('positioning', 'midscale')}",
-        f"- Star rating: {prop.get('star_rating', 3)}",
-        f"- Brand strength: {prop.get('brand_strength', 'low')}",
-        f"- Total rooms/units: {prop.get('total_rooms')}",
-        f"- Owner price floor (minimum rate): {fmt(prop.get('price_floor'))}",
-        f"- Currency for all amounts: {currency}",
-        f"- USPs: {prop.get('usp_text') or 'Not provided'}",
-        f"- Amenities: {prop.get('amenities') or 'Not provided'}",
-        f"- Paid extras/add-ons: {prop.get('extras') or 'Not provided'}",
-        f"- Climate/Sunny days: {prop.get('sunny_days', 'N/A')} days/year — {prop.get('climate_type', 'N/A')}",
-        "",
-        "## Room Types & Rates",
-    ]
+    # Property identity
+    parts.append("Property Profile:")
+    for lbl, val in [
+        ("Name", prop.get('name')),
+        ("Location", prop.get('city')),
+        ("Type", prop.get('property_type')),
+        ("Positioning", prop.get('positioning')),
+        ("Stars", prop.get('star_rating')),
+        ("Brand strength", prop.get('brand_strength')),
+        ("Total rooms/units", prop.get('total_rooms')),
+        ("Owner minimum price floor", fmt(prop.get('price_floor'))),
+        ("Currency", currency),
+        ("USPs", prop.get('usp_text')),
+        ("Amenities", prop.get('amenities')),
+        ("Extras/Add-ons", prop.get('extras')),
+    ]:
+        if val:
+            parts.append(f"- {lbl}: {val}")
 
-    for rt in rooms:
-        bkf = rt.get('breakfast_per_pax', 0) or 0
-        bkf_note = f" | breakfast {fmt(bkf)}/pax included" if bkf > 0 else ""
-        lines.append(
-            f"- {rt['name']}: {rt['units']} units | max {rt.get('pax_max', 2)} pax | "
-            f"rate {fmt(rt.get('derived_rate'))}{bkf_note} | "
-            f"current occupancy {rt.get('occupancy_pct', 55)}%"
-        )
-
-    lines += ["", "## Current Performance (last 30 days)"]
-    if perf:
-        def pv(key, label):
-            v = perf.get(key)
-            if v is not None and v != '' and v != 0:
-                return f"- {label}: {fmt(v) if 'rate' in key.lower() or key in ('adr','revpar','total_monthly_revenue') else v}"
-            return None
-
-        metric_lines = [
-            f"- Occupancy %: {perf.get('occupancy_pct')}%" if perf.get('occupancy_pct') else None,
-            f"- ADR (Average Daily Rate): {fmt(perf.get('adr'))}" if perf.get('adr') else None,
-            f"- RevPAR: {fmt(perf.get('revpar'))}" if perf.get('revpar') else None,
-            f"- Total monthly revenue (ventas totales mes): {fmt(perf.get('total_monthly_revenue'))}" if perf.get('total_monthly_revenue') else None,
-            f"- Total nights available/month (noches disponibles): {perf.get('total_nights_available')}" if perf.get('total_nights_available') else None,
-            f"- Nights sold/month (noches vendidas): {perf.get('nights_sold')}" if perf.get('nights_sold') else None,
-            f"- Avg booking window: {perf.get('booking_window_days')} days" if perf.get('booking_window_days') else None,
-            f"- Avg LOS: {perf.get('avg_los')} nights" if perf.get('avg_los') else None,
-            f"- Cancellation rate: {perf.get('cancellation_pct')}%" if perf.get('cancellation_pct') else None,
-            f"- Channel mix: Direct {perf.get('channel_direct_pct',0)}% / Booking {perf.get('channel_booking_pct',0)}% / Expedia {perf.get('channel_expedia_pct',0)}% / Airbnb {perf.get('channel_airbnb_pct',0)}% / Corporate {perf.get('channel_corp_pct',0)}%",
-            f"- City avg occupancy: {perf.get('city_avg_occ_pct')}%" if perf.get('city_avg_occ_pct') else None,
-            f"- Guest segment: {perf.get('guest_segment')}" if perf.get('guest_segment') else None,
-            f"- Feeder markets: {perf.get('feeder_markets')}" if perf.get('feeder_markets') else None,
-        ]
-        provided = [l for l in metric_lines if l]
-        if provided:
-            lines += provided
-        else:
-            lines.append("- Performance metrics: not provided — use expert knowledge for this property type and market")
-    else:
-        lines.append("- No performance data provided — use your expert revenue management knowledge to generate recommendations based on property type, location, and positioning")
-
-    lines += ["", "## Market & Competitive Set"]
-    if market:
-        lines += [
-            f"- Market average rate: {fmt(market.get('market_avg_rate'))}",
-            f"- Current demand level: {market.get('demand_level', 'medium')}",
-            f"- Seasonality pattern: {market.get('seasonality', 'N/A')}",
-            f"- Upcoming events/holidays: {market.get('upcoming_events', 'N/A')}",
-            f"- Key demand drivers: {market.get('demand_drivers', 'N/A')}",
-        ]
-
-    if compset:
-        lines.append("- Competitive set (direct competitors):")
-        for c in compset:
-            lines.append(
-                f"  * {c['name']} | type: {c.get('comp_type', 'N/A')} | "
-                f"rooms: {c.get('rooms', 'N/A')} | "
-                f"avg rate: {fmt(c.get('avg_rate'))} | "
-                f"position vs us: {c.get('position', 'similar')}"
+    # Room types
+    if rooms:
+        parts.append("\nRoom Types:")
+        for rt in rooms:
+            r = fmt(rt.get('derived_rate') or prop.get('price_floor'))
+            bkf = rt.get('breakfast_per_pax', 0) or 0
+            occ = rt.get('occupancy_pct', 55)
+            parts.append(
+                f"- {rt['name']}: {rt['units']} units | "
+                f"max {rt.get('pax_max', 2)} pax | "
+                f"rate {r}" +
+                (f" + breakfast {fmt(bkf)}/pax" if bkf else "") +
+                f" | occupancy {occ}%"
             )
+
+    # Performance metrics — only include what was actually provided
+    perf_lines = []
+    metric_map = [
+        ('occupancy_pct',         '% Occupancy',              False),
+        ('adr',                   'ADR (Average Daily Rate)',  True),
+        ('revpar',                'RevPAR',                    True),
+        ('total_monthly_revenue', 'Total Monthly Revenue',     True),
+        ('total_nights_available','Total Nights Available/Month', False),
+        ('nights_sold',           'Nights Sold/Month',         False),
+        ('booking_window_days',   'Avg Booking Window (days)', False),
+        ('avg_los',               'Avg LOS (nights)',          False),
+        ('cancellation_pct',      'Cancellation Rate %',       False),
+        ('city_avg_occ_pct',      'City Average Occupancy %',  False),
+        ('guest_segment',         'Primary Guest Segment',     False),
+        ('feeder_markets',        'Top Feeder Markets',        False),
+    ]
+    for key, label, is_money in metric_map:
+        v = perf.get(key)
+        if v is not None and v != '' and v != 0:
+            display = fmt(v) if is_money else (f"{v}%" if 'pct' in key else str(v))
+            perf_lines.append(f"- {label}: {display}")
+
+    # Channel mix
+    ch_parts = []
+    for k, lbl in [('channel_direct_pct','Direct'),('channel_booking_pct','Booking.com'),
+                   ('channel_expedia_pct','Expedia'),('channel_airbnb_pct','Airbnb'),
+                   ('channel_corp_pct','Corporate')]:
+        v = perf.get(k, 0) or 0
+        if v:
+            ch_parts.append(f"{lbl} {v}%")
+    if ch_parts:
+        perf_lines.append(f"- Channel mix: {' / '.join(ch_parts)}")
+
+    if perf_lines:
+        parts.append("\nCurrent Performance (Last 30 Days):")
+        parts += perf_lines
     else:
-        lines.append("- No competitor data provided. Use market knowledge for this area and property type.")
+        parts.append("\nCurrent Performance: Not provided — apply expert knowledge for this property type.")
 
-    # Data availability summary
-    has_perf = bool(data.get('performance') and data['performance'].get('adr'))
-    has_market = bool(data.get('market') and data['market'].get('market_avg_rate'))
-    has_compset = bool(data.get('compset'))
-    has_pms = bool(pms_data and pms_data.strip())
+    # Market
+    mkt_lines = []
+    if market.get('market_avg_rate'):
+        mkt_lines.append(f"- Market average rate: {fmt(market['market_avg_rate'])}")
+    if market.get('demand_level'):
+        mkt_lines.append(f"- Current demand: {market['demand_level']}")
+    if market.get('seasonality'):
+        mkt_lines.append(f"- Seasonality: {market['seasonality']}")
+    if market.get('upcoming_events'):
+        mkt_lines.append(f"- Upcoming events: {market['upcoming_events']}")
+    if market.get('demand_drivers'):
+        mkt_lines.append(f"- Demand drivers: {market['demand_drivers']}")
+    if mkt_lines:
+        parts.append("\nMarket Context:")
+        parts += mkt_lines
 
-    lines += [
+    # CompSet
+    if compset:
+        parts.append("\nCompetitive Set:")
+        for c in compset:
+            if c.get('name'):
+                r = fmt(c.get('avg_rate'))
+                parts.append(
+                    f"- {c['name']}: rate {r or 'unknown'} | position vs us: {c.get('position','similar')}"
+                )
+
+    parts += [
         "",
-        "═══════════════════════════════════════════════════════════",
-        "DATA AVAILABILITY SUMMARY:",
-        f"- PMS/OTA report attached: {'YES — use these numbers as primary source' if has_pms else 'NO — only use the structured data above'}",
-        f"- Performance metrics provided: {'YES' if has_perf else 'NO — do NOT invent occupancy/ADR/RevPAR'}",
-        f"- Market data provided: {'YES' if has_market else 'NO — do NOT invent market averages'}",
-        f"- Competitor data provided: {'YES' if has_compset else 'NO — acknowledge missing and skip competitor comparison'}",
-        "═══════════════════════════════════════════════════════════",
-        "",
-        "NOW produce the complete 10-section OMNI-REVENUE analysis.",
-        f"CURRENCY: All amounts in {currency}.",
-        "RULE: Only use numbers explicitly provided above. Write '— dato no proporcionado' for any missing metric.",
-        "DO NOT hallucinate or estimate numbers not in the data."
+        f"=== GENERATE COMPLETE 10-SECTION OMNI-REVENUE ANALYSIS ===",
+        f"Currency: {currency}",
+        "Generate specific numbers for EVERY section. Be the expert. Recommend boldly.",
+        "If a metric was not provided, calculate it from available data or state your expert assumption.",
     ]
 
-    return "\n".join(lines)
+    return "\n".join(parts)
 
 
 def parse_sections(raw: str) -> dict:
+    """Robust section parser — handles various markdown formats from Groq."""
     sections = {}
-    pattern = re.compile(r'(##\s+\d+\.\s+.+?)(?=\n##\s+\d+\.|\Z)', re.DOTALL)
-    for match in pattern.finditer(raw):
-        content = match.group(1).strip()
-        num_match = re.match(r'##\s+(\d+)\.', content)
-        if num_match:
-            num = num_match.group(1)
+    if not raw:
+        return sections
+
+    # Try multiple patterns to find section boundaries
+    # Pattern 1: ## 1. Title or ## 1. Title (most common)
+    pattern = re.compile(
+        r'(?:^|\n)(##\s+\*{0,2}(\d+)[\.\)]\*{0,2}\s+.+?)(?=\n##\s+\*{0,2}\d+[\.\)]|\Z)',
+        re.DOTALL | re.MULTILINE
+    )
+    matches = list(pattern.finditer(raw))
+
+    if not matches:
+        # Fallback: split by numbered sections more liberally
+        pattern2 = re.compile(
+            r'(?:^|\n)#+\s*\*{0,2}(\d+)[\.\)]\*{0,2}',
+            re.MULTILINE
+        )
+        boundaries = [(m.start(), m.group(1)) for m in pattern2.finditer(raw)]
+        for i, (start, num) in enumerate(boundaries):
+            end = boundaries[i+1][0] if i+1 < len(boundaries) else len(raw)
             key = SECTION_MAP.get(num)
             if key:
-                sections[key] = content
+                sections[key] = raw[start:end].strip()
+        return sections
+
+    for match in matches:
+        content = match.group(1).strip()
+        num = match.group(2)
+        key = SECTION_MAP.get(num)
+        if key:
+            sections[key] = content
+
     return sections
 
 
@@ -299,7 +310,7 @@ def generate_omni_analysis(data: dict) -> dict:
 
     api_key = os.environ.get('GROQ_API_KEY', '')
     if not api_key:
-        raise ValueError("GROQ_API_KEY not configurado en variables de entorno.")
+        raise ValueError("GROQ_API_KEY no está configurado. Agrégalo en Railway → Variables.")
 
     client = Groq(api_key=api_key)
     prompt = build_property_prompt(data)
@@ -310,10 +321,15 @@ def generate_omni_analysis(data: dict) -> dict:
             {'role': 'system', 'content': OMNI_SYSTEM_PROMPT},
             {'role': 'user', 'content': prompt}
         ],
-        temperature=0.4,
-        max_tokens=8192,
+        temperature=0.5,
+        max_tokens=8000,
     )
 
-    raw = response.choices[0].message.content
+    raw = response.choices[0].message.content or ''
     sections = parse_sections(raw)
+
+    # If parser found nothing, store entire response in dna section
+    if not sections and raw.strip():
+        sections = {'dna': raw}
+
     return {'raw': raw, 'sections': sections}

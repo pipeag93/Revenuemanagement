@@ -193,7 +193,7 @@
     {% endif %}
     <div class="card">
       <div class="card-t">Análisis DNA — OMNI-REVENUE ARCHITECT</div>
-      <div class="md-body" id="md-dna">{{ analysis['section_dna'] or '' }}</div>
+      <div class="md-body" id="md-dna">{{ analysis['section_dna'] or analysis.raw_response or '' }}</div>
     </div>
   </div>
 
@@ -635,19 +635,40 @@ function downloadPDF() {
 }
 
 function buildPDFContent() {
-  // Raw analysis data passed directly from server — never empty
-  var sections = [
-    ['I — Property DNA Profile',     {{ (analysis['section_dna'] or '')|tojson }}],
-    ['II — Diagnóstico & Issues',    {{ (analysis['section_diagnosis'] or '')|tojson }}],
-    ['III — Demand Forecast',        {{ (analysis['section_forecast'] or '')|tojson }}],
-    ['IV — Dynamic Pricing Matrix',  {{ (analysis['section_matrix'] or '')|tojson }}],
-    ['V — Rate Plan Architecture',   {{ (analysis['section_rates'] or '')|tojson }}],
-    ['VI — Inventory Restrictions',  {{ (analysis['section_restrictions'] or '')|tojson }}],
-    ['VII — Channel Strategy & Ads', {{ (analysis['section_channels'] or '')|tojson }}],
-    ['VIII — Revenue Opportunities', {{ (analysis['section_upsell'] or '')|tojson }}],
-    ['IX — Action Plan',             {{ (analysis['section_action'] or '')|tojson }}],
-    ['X — KPIs to Monitor',          {{ (analysis['section_kpis'] or '')|tojson }}]
-  ];
+  // Get sections — fall back to raw response if sections were not parsed
+  var rawFull = {{ (analysis.raw_response or '')|tojson }};
+
+  var s_dna =   {{ (analysis['section_dna'] or '')|tojson }};
+  var s_diag =  {{ (analysis['section_diagnosis'] or '')|tojson }};
+  var s_fc =    {{ (analysis['section_forecast'] or '')|tojson }};
+  var s_mat =   {{ (analysis['section_matrix'] or '')|tojson }};
+  var s_rat =   {{ (analysis['section_rates'] or '')|tojson }};
+  var s_res =   {{ (analysis['section_restrictions'] or '')|tojson }};
+  var s_ch =    {{ (analysis['section_channels'] or '')|tojson }};
+  var s_up =    {{ (analysis['section_upsell'] or '')|tojson }};
+  var s_ac =    {{ (analysis['section_action'] or '')|tojson }};
+  var s_kpi =   {{ (analysis['section_kpis'] or '')|tojson }};
+
+  // If sections are all empty, show full raw response as single section
+  var hasSections = s_dna || s_diag || s_fc || s_mat || s_rat || s_res || s_ch || s_up || s_ac || s_kpi;
+
+  var sections;
+  if (!hasSections && rawFull) {
+    sections = [['Análisis Completo OMNI-REVENUE', rawFull]];
+  } else {
+    sections = [
+      ['I — Property DNA Profile',     s_dna  || rawFull],
+      ['II — Diagnóstico & Issues',    s_diag],
+      ['III — Demand Forecast',        s_fc],
+      ['IV — Dynamic Pricing Matrix',  s_mat],
+      ['V — Rate Plan Architecture',   s_rat],
+      ['VI — Inventory Restrictions',  s_res],
+      ['VII — Channel Strategy & Ads', s_ch],
+      ['VIII — Revenue Opportunities', s_up],
+      ['IX — Action Plan',             s_ac],
+      ['X — KPIs to Monitor',          s_kpi]
+    ].filter(function(s){ return s[1] && s[1].trim(); });
+  }
 
   {% set perf = prop.performance %}
   {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
