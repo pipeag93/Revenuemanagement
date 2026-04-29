@@ -80,6 +80,11 @@
     <div style="display:flex;gap:10px;align-items:center;">
       {% if analysis %}<span style="font-size:11px;color:var(--dim);">{{ analysis.created_at.strftime('%d %b %Y %H:%M') }}</span>{% endif %}
       <a href="{{ url_for('revenue_pro.setup', property_id=prop.id) }}" class="btn-ghost" style="text-decoration:none;font-size:11px;">Editar perfil</a>
+      {% if analysis %}
+      <button onclick="downloadPDF()" class="btn-ghost" style="font-size:11px;" id="pdf-btn">
+        ⬇ Descargar PDF
+      </button>
+      {% endif %}
       <form method="POST" action="{{ url_for('revenue_pro.run_analysis', property_id=prop.id) }}"
             onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Analizando...';">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -604,5 +609,118 @@ window.addEventListener('load', function() {
   renderMarkdown();
   renderChartsForSlide();
 });
+
+// ── PDF Export ──
+function downloadPDF() {
+  var btn = document.getElementById('pdf-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ Generando PDF...';
+
+  // Build full report HTML for PDF
+  var html = buildPDFContent();
+  var container = document.createElement('div');
+  container.innerHTML = html;
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;font-family:Georgia,serif;background:#fff;color:#1a1a1a;';
+  document.body.appendChild(container);
+
+  var script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+  script.onload = function() {
+    var opt = {
+      margin: [12, 12, 12, 12],
+      filename: '{{ (prop.name or "OMNI-REVENUE") | replace(" ", "_") }}_Analysis.pdf',
+      image: { type:'jpeg', quality:0.95 },
+      html2canvas: { scale:2, useCORS:true, background:'#ffffff' },
+      jsPDF: { unit:'mm', format:'a4', orientation:'portrait' },
+      pagebreak: { mode:['avoid-all','css'], before:'.pdf-section' }
+    };
+    html2pdf().set(opt).from(container).save().then(function() {
+      document.body.removeChild(container);
+      btn.disabled = false;
+      btn.textContent = '⬇ Descargar PDF';
+    });
+  };
+  document.body.appendChild(script);
+}
+
+function buildPDFContent() {
+  var sections = [
+    ['section_dna', 'I — Property DNA Profile'],
+    ['section_diagnosis', 'II — Diagnóstico & Issues'],
+    ['section_forecast', 'III — Demand Forecast'],
+    ['section_matrix', 'IV — Dynamic Pricing Matrix'],
+    ['section_rates', 'V — Rate Plan Architecture'],
+    ['section_restrictions', 'VI — Inventory Restrictions'],
+    ['section_channels', 'VII — Channel Strategy & Ads'],
+    ['section_upsell', 'VIII — Revenue Opportunities'],
+    ['section_action', 'IX — Action Plan'],
+    ['section_kpis', 'X — KPIs to Monitor']
+  ];
+
+  var css = '<style>'
+    + 'body{font-family:Georgia,serif;color:#1a1a1a;background:#fff;font-size:12px;line-height:1.7}'
+    + '.pdf-header{background:#0e1520;color:#f0cc7a;padding:28px 32px;margin-bottom:0}'
+    + '.pdf-header h1{font-size:26px;font-weight:700;margin:0 0 4px}'
+    + '.pdf-header p{font-size:12px;color:#b8ae98;margin:0}'
+    + '.pdf-kpis{background:#f8f6f0;padding:16px 32px;display:flex;gap:16px;border-bottom:2px solid #d4a843}'
+    + '.pdf-kpi{flex:1;text-align:center}'
+    + '.pdf-kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:4px}'
+    + '.pdf-kpi-v{font-size:20px;font-weight:700;color:#0e1520}'
+    + '.pdf-section{padding:20px 32px;border-bottom:1px solid #eee;page-break-inside:avoid}'
+    + '.pdf-section-title{font-size:15px;font-weight:700;color:#0e1520;border-left:4px solid #d4a843;padding-left:10px;margin-bottom:12px}'
+    + '.pdf-content{font-size:11px;color:#333;line-height:1.8;white-space:pre-wrap}'
+    + '.pdf-content h2{font-size:13px;font-weight:700;color:#0e1520;margin:12px 0 6px}'
+    + '.pdf-content h3{font-size:12px;font-weight:700;color:#333;margin:8px 0 4px}'
+    + '.pdf-content table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}'
+    + '.pdf-content th{background:#0e1520;color:#f0cc7a;padding:6px 8px;text-align:left;font-size:9px}'
+    + '.pdf-content td{padding:5px 8px;border-bottom:1px solid #eee}'
+    + '.pdf-content tr:nth-child(even) td{background:#f9f7f2}'
+    + '.pdf-content strong{color:#0e1520}'
+    + '.pdf-footer{text-align:center;padding:16px;font-size:9px;color:#999;border-top:1px solid #eee}'
+    + '</style>';
+
+  var propName = '{{ prop.name or "Propiedad" }}';
+  var propCity = '{{ prop.city or "" }}';
+  var currency = '{{ prop.currency }}';
+  var date = '{{ analysis.created_at.strftime("%d %b %Y") if analysis else "" }}';
+
+  {% set perf = prop.performance %}
+  {% set occ = perf.occupancy_pct if perf and perf.occupancy_pct else 55 %}
+  {% set adr = perf.adr if perf and perf.adr else prop.price_floor %}
+
+  var header = '<div class="pdf-header">'
+    + '<h1>OMNI-REVENUE Analysis</h1>'
+    + '<p>' + propName + (propCity ? ' · ' + propCity : '') + ' · ' + currency + ' · ' + date + '</p>'
+    + '<p style="margin-top:6px;font-size:10px;color:#8a6820;">Designed by Felipe Acevedo · Powered by Omni Revenue Intelligence Platform</p>'
+    + '</div>';
+
+  var kpis = '<div class="pdf-kpis">'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Total Hab.</div><div class="pdf-kpi-v">{{ prop.total_rooms }}</div></div>'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Ocupación</div><div class="pdf-kpi-v">{{ occ|int }}%</div></div>'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">ADR</div><div class="pdf-kpi-v">{{ '{:,.0f}'.format(adr|round|int) }}</div></div>'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Posicionamiento</div><div class="pdf-kpi-v">{{ prop.positioning|title }}</div></div>'
+    + '<div class="pdf-kpi"><div class="pdf-kpi-l">Moneda</div><div class="pdf-kpi-v">' + currency + '</div></div>'
+    + '</div>';
+
+  var body = '';
+  sections.forEach(function(s) {
+    var field = s[0];
+    var title = s[1];
+    var el = document.getElementById('md-' + field.replace('section_',''));
+    var content = el ? (el.innerHTML || el.textContent || '') : '';
+    if (!content.trim()) {
+      var rawEl = document.getElementById('rendered-' + field);
+      content = rawEl ? (rawEl.innerHTML || rawEl.textContent || '') : '';
+    }
+    body += '<div class="pdf-section">'
+      + '<div class="pdf-section-title">' + title + '</div>'
+      + '<div class="pdf-content">' + content + '</div>'
+      + '</div>';
+  });
+
+  var footer = '<div class="pdf-footer">Generado por Omni Revenue Intelligence Platform · Designed by Felipe Acevedo · ' + date + '</div>';
+
+  return css + '<body>' + header + kpis + body + footer + '</body>';
+}
 </script>
 {% endblock %}
