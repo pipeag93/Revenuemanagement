@@ -30,12 +30,22 @@ OUTPUT: You MUST produce all 10 sections below. Each section must have specific 
 [Bullet list of specific issues found with metric and financial impact in property currency]
 - Issue: [description] → Impact: [amount or %]
 
-## 3. Demand Forecast (next 7 / 14 / 30 days)
-| Period | Expected Demand | Confidence | Recommended ADR | Key Driver |
-|--------|----------------|------------|-----------------|------------|
-| Next 7 days | High/Med/Low | X% | [amount] | [event/season] |
-| Next 14 days | ... | ... | [amount] | ... |
-| Next 30 days | ... | ... | [amount] | ... |
+## 3. Demand Forecast & 16-Week Revenue Action Plan
+### Próximos 7 / 14 / 30 Días
+| Período | Demanda Esperada | Confianza | ADR Recomendado | Driver |
+|---------|-----------------|-----------|-----------------|--------|
+| Próximos 7 días | Alta/Media/Baja | X% | [amount] | [evento/temporada] |
+| Próximos 14 días | ... | ... | [amount] | ... |
+| Próximos 30 días | ... | ... | [amount] | ... |
+
+### Plan de Acción 16 Semanas — Fases de Ejecución
+| Fase | Semanas | Occ% Target | ADR Target | Acciones Prioritarias |
+|------|---------|------------|------------|----------------------|
+| Fase 1 — Inmediata | Sem 1–3 | X% | [amount] | [acción 1] · [acción 2] · [acción 3] |
+| Fase 2 — Corto plazo | Sem 4–6 | X% | [amount] | [acción 1] · [acción 2] · [acción 3] |
+| Fase 3 — Medio plazo | Sem 7–9 | X% | [amount] | [acción 1] · [acción 2] · [acción 3] |
+| Fase 4 — Largo plazo | Sem 10–12 | X% | [amount] | [acción 1] · [acción 2] · [acción 3] |
+| Fase 5 — Visión | Sem 13–16 | X% | [amount] | [acción 1] · [acción 2] · [acción 3] |
 
 ## 4. Dynamic Pricing Matrix
 Base rate: [floor or ADR provided]
@@ -66,11 +76,14 @@ Base rate: [floor or ADR provided]
 Current mix: [from data or assumed]
 Target mix in 6 months: X% Direct / X% Booking / X% Other
 
-**Booking.com — Activate:**
-- [Specific promotion with discount % and expected ranking impact]
+**Booking.com — Activar:**
+- [Promoción específica con descuento % e impacto esperado en ranking]
 
-**Expedia — Activate:**
-- [Specific promotion]
+**Expedia — Activar:**
+- [Promoción específica]
+
+**Despegar.com / Decolar (si mercado LATAM) — Activar:**
+- [Promoción específica y impacto esperado]
 
 **Google Hotel Ads:**
 - [Setup steps and why: CPE ~8% vs Booking 15%]
@@ -226,7 +239,7 @@ def build_property_prompt(data: dict) -> str:
     ch_parts = []
     for k, lbl in [('channel_booking_pct','Booking.com'),('channel_direct_pct','Direct'),
                    ('channel_expedia_pct','Expedia'),('channel_airbnb_pct','Airbnb'),
-                   ('channel_corp_pct','Corporate')]:
+                   ('channel_corp_pct','Corporate'),('channel_other_pct','Despegar.com')]:
         v = perf.get(k, 0) or 0
         if v and v > 0:
             ch_parts.append(f"{lbl} {v}%")

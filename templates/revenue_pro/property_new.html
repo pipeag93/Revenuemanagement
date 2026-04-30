@@ -191,6 +191,11 @@
             placeholder="ej. 0" oninput="calcChannels()">
         </div>
         <div class="field">
+          <label>Despegar.com — <span class="es-text">Ventas mes</span><span class="en-text">Monthly sales</span></label>
+          <input class="fi" type="text" name="channel_despegar_rev" id="ch-despegar"
+            placeholder="ej. 0" oninput="calcChannels()" style="color:#f97316;">
+        </div>
+        <div class="field">
           <label>
             <span class="es-text">% Ocupación promedio ciudad</span>
             <span class="en-text">City average occupancy %</span>
@@ -215,6 +220,7 @@
       <input type="hidden" name="channel_expedia_pct" id="ch-expedia-pct" value="0">
       <input type="hidden" name="channel_airbnb_pct" id="ch-airbnb-pct" value="0">
       <input type="hidden" name="channel_corp_pct" id="ch-corp-pct" value="0">
+      <input type="hidden" name="channel_despegar_pct" id="ch-despegar-pct" value="0">
     </div>
 
     <!-- ── CompSet ── -->
@@ -276,40 +282,43 @@ function parseAmt(s) {
 }
 
 function calcChannels() {
-  var booking = parseAmt(document.getElementById('ch-booking').value);
-  var direct  = parseAmt(document.getElementById('ch-direct').value);
-  var expedia = parseAmt(document.getElementById('ch-expedia').value);
-  var airbnb  = parseAmt(document.getElementById('ch-airbnb').value);
-  var corp    = parseAmt(document.getElementById('ch-corp').value);
-  var total   = booking + direct + expedia + airbnb + corp;
+  var booking  = parseAmt(document.getElementById('ch-booking').value);
+  var direct   = parseAmt(document.getElementById('ch-direct').value);
+  var expedia  = parseAmt(document.getElementById('ch-expedia').value);
+  var airbnb   = parseAmt(document.getElementById('ch-airbnb').value);
+  var corp     = parseAmt(document.getElementById('ch-corp').value);
+  var despegar = parseAmt(document.getElementById('ch-despegar').value);
+  var total    = booking + direct + expedia + airbnb + corp + despegar;
   if (total === 0) {
     document.getElementById('channel-breakdown').style.display = 'none';
     return;
   }
   // Calculate %
   var pcts = {
-    booking: Math.round(booking/total*100),
-    direct:  Math.round(direct/total*100),
-    expedia: Math.round(expedia/total*100),
-    airbnb:  Math.round(airbnb/total*100),
-    corp:    Math.round(corp/total*100)
+    booking:  Math.round(booking/total*100),
+    direct:   Math.round(direct/total*100),
+    expedia:  Math.round(expedia/total*100),
+    airbnb:   Math.round(airbnb/total*100),
+    corp:     Math.round(corp/total*100),
+    despegar: Math.round(despegar/total*100)
   };
   // Set hidden fields
-  document.getElementById('ch-booking-pct').value = pcts.booking;
-  document.getElementById('ch-direct-pct').value  = pcts.direct;
-  document.getElementById('ch-expedia-pct').value = pcts.expedia;
-  document.getElementById('ch-airbnb-pct').value  = pcts.airbnb;
-  document.getElementById('ch-corp-pct').value    = pcts.corp;
+  document.getElementById('ch-booking-pct').value  = pcts.booking;
+  document.getElementById('ch-direct-pct').value   = pcts.direct;
+  document.getElementById('ch-expedia-pct').value  = pcts.expedia;
+  document.getElementById('ch-airbnb-pct').value   = pcts.airbnb;
+  document.getElementById('ch-corp-pct').value     = pcts.corp;
+  document.getElementById('ch-despegar-pct').value = pcts.despegar;
 
   var cur = document.querySelector('[name=currency]').value;
   function fmtM(v) { return v>=1e6 ? cur+' '+(v/1e6).toFixed(1)+'M' : v>=1e3 ? cur+' '+(v/1e3).toFixed(0)+'K' : cur+' '+v.toLocaleString('es-CO'); }
 
   // Visual bar
   var bar = document.getElementById('channel-bar');
-  var colors = {booking:'#c0392b',direct:'#4caf78',expedia:'#5c9ce0',airbnb:'#f0a500',corp:'#a78bfa'};
-  var labels = {booking:'Booking.com',direct:'Directo',expedia:'Expedia',airbnb:'Airbnb',corp:'Corporativo'};
+  var colors = {booking:'#c0392b',direct:'#4caf78',expedia:'#5c9ce0',airbnb:'#f0a500',corp:'#a78bfa',despegar:'#f97316'};
+  var labels = {booking:'Booking.com',direct:'Directo',expedia:'Expedia',airbnb:'Airbnb',corp:'Corporativo',despegar:'Despegar.com'};
   bar.innerHTML = '';
-  [{k:'booking',v:booking},{k:'direct',v:direct},{k:'expedia',v:expedia},{k:'airbnb',v:airbnb},{k:'corp',v:corp}]
+  [{k:'booking',v:booking},{k:'direct',v:direct},{k:'expedia',v:expedia},{k:'airbnb',v:airbnb},{k:'corp',v:corp},{k:'despegar',v:despegar}]
     .filter(function(x){return x.v>0;})
     .forEach(function(x){
       var div = document.createElement('div');
@@ -321,7 +330,7 @@ function calcChannels() {
   // Detail
   var det = document.getElementById('channel-detail');
   det.innerHTML = '';
-  [{k:'booking',v:booking},{k:'direct',v:direct},{k:'expedia',v:expedia},{k:'airbnb',v:airbnb},{k:'corp',v:corp}]
+  [{k:'booking',v:booking},{k:'direct',v:direct},{k:'expedia',v:expedia},{k:'airbnb',v:airbnb},{k:'corp',v:corp},{k:'despegar',v:despegar}]
     .filter(function(x){return x.v>0;})
     .forEach(function(x){
       det.innerHTML += '<div style="display:flex;align-items:center;gap:5px;">'

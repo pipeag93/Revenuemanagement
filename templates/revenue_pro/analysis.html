@@ -131,7 +131,9 @@
   {% set direct = perf.channel_direct_pct if perf else 0 %}
   {% set booking_pct = perf.channel_booking_pct if perf else 100 %}
   {% set expedia_pct = perf.channel_expedia_pct if perf else 0 %}
+  {% set airbnb_pct = perf.channel_airbnb_pct if perf else 0 %}
   {% set corp_pct = perf.channel_corp_pct if perf else 0 %}
+  {% set despegar_pct = perf.channel_other_pct if perf else 0 %}
   {% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
   {% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
   {% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
@@ -254,15 +256,31 @@
   <div class="slide" data-label="III — Demand Forecast">
     <div class="slide-header">
       <div class="slide-num">Sección III</div>
-      <div class="slide-title">Demand Forecast</div>
-      <div class="slide-sub">Próximos 7 · 14 · 30 días — ADR recomendado</div>
+      <div class="slide-title">Demand Forecast & Plan 16 Semanas</div>
+      <div class="slide-sub">ADR target por fase · Ocupación proyectada · Acciones concretas</div>
+    </div>
+    <!-- Phase cards -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;">
+      {% for phase, weeks, color in [
+        ('Fase 1','Sem 1–3','#e05c5c'),
+        ('Fase 2','Sem 4–6','#f0a500'),
+        ('Fase 3','Sem 7–9','#d4a843'),
+        ('Fase 4','Sem 10–12','#5c9ce0'),
+        ('Fase 5','Sem 13–16','#4caf78')
+      ] %}
+      <div class="kpi-card" style="border-top:3px solid {{ color }};padding:12px 10px;">
+        <div style="font-size:8px;font-weight:700;color:{{ color }};text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">{{ phase }}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--cream);">{{ weeks }}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">Ver análisis ↓</div>
+      </div>
+      {% endfor %}
     </div>
     <div class="card" style="margin-bottom:14px;">
-      <div class="card-t">Proyección de ocupación y tarifa recomendada</div>
+      <div class="card-t">ADR target por fase (16 semanas)</div>
       <div class="ch"><canvas id="chart-forecast"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-t">Forecast detallado — IA</div>
+      <div class="card-t">Forecast completo & Plan 16 semanas — IA</div>
       <div class="md-body" id="md-fc">{{ analysis['section_forecast'] or '' }}</div>
     </div>
   </div>
@@ -537,8 +555,9 @@ function renderMarkdown() {
 {% set direct = perf.channel_direct_pct if perf else 0 %}
 {% set booking_pct = perf.channel_booking_pct if perf else 100 %}
 {% set expedia_pct = perf.channel_expedia_pct if perf else 0 %}
+{% set airbnb_pct = perf.channel_airbnb_pct if perf else 0 %}
 {% set corp_pct = perf.channel_corp_pct if perf else 0 %}
-{% set other_ch = [0, (100 - direct - booking_pct - expedia_pct - corp_pct)|round]|max %}
+{% set despegar_pct = perf.channel_other_pct if perf else 0 %}
 {% set city_occ = perf.city_avg_occ_pct if perf and perf.city_avg_occ_pct else 65 %}
 {% set monthly_rev = (prop.total_rooms * 30 * (occ/100) * adr)|round %}
 {% set potential_rev = (prop.total_rooms * 30 * (city_occ/100) * adr)|round %}
@@ -561,18 +580,25 @@ function renderChartsForSlide() {
   var label = slides[cur].getAttribute('data-label') || '';
 
   if (label.includes('III')) {
+    var baseAdr = {{ adr }};
+    var baseOcc = {{ occ }};
     mkChart('chart-forecast', {type:'bar',data:{
-      labels:['Próx. 7d','Próx. 14d','Próx. 30d'],
+      labels:['Sem 1–3\nInmediata','Sem 4–6\nCorto','Sem 7–9\nMedio','Sem 10–12\nLargo','Sem 13–16\nVisión'],
       datasets:[
-        {label:'ADR recomendado',data:[{{ (adr*1.05)|round|int }},{{ (adr*1.15)|round|int }},{{ (adr*1.0)|round|int }}],backgroundColor:['rgba(76,175,120,0.7)','rgba(212,168,67,0.7)','rgba(96,165,250,0.6)'],borderRadius:6,borderSkipped:false,yAxisID:'y'},
-        {label:'Ocupación esperada %',data:[58,68,52],type:'line',borderColor:'#f0cc7a',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#f0cc7a',tension:.4,yAxisID:'y2'}
+        {label:'ADR target',
+         data:[Math.round(baseAdr*1.05),Math.round(baseAdr*1.12),Math.round(baseAdr*1.20),Math.round(baseAdr*1.28),Math.round(baseAdr*1.35)],
+         backgroundColor:['rgba(224,92,92,0.7)','rgba(240,165,0,0.7)','rgba(212,168,67,0.7)','rgba(92,156,224,0.7)','rgba(76,175,120,0.7)'],
+         borderRadius:6,borderSkipped:false,yAxisID:'y'},
+        {label:'Ocupación %',
+         data:[Math.min(baseOcc+5,95),Math.min(baseOcc+10,95),Math.min(baseOcc+15,95),Math.min(baseOcc+18,95),Math.min(baseOcc+20,95)],
+         type:'line',borderColor:'#f0cc7a',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#f0cc7a',tension:.4,yAxisID:'y2'}
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{labels:{color:'#c0c8d8',font:{size:11},boxWidth:12}},tooltip:co},
         scales:{
-          y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#c0c8d8',callback:function(v){return '$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}},
+          y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#c0c8d8',callback:function(v){return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'K';}},border:{display:false}},
           y2:{position:'right',grid:{display:false},ticks:{color:'#c0c8d8',callback:function(v){return v+'%';}},border:{display:false}},
-          x:{grid:{display:false},ticks:{color:'#c0c8d8'},border:{display:false}}
+          x:{grid:{display:false},ticks:{color:'#c0c8d8',font:{size:10}},border:{display:false}}
         }}
     });
   }
@@ -598,9 +624,18 @@ function renderChartsForSlide() {
   }
 
   if (label.includes('VII')) {
+    var chAll = [
+      {l:'Directo',      v:{{ direct }},       c:'rgba(76,175,120,0.85)'},
+      {l:'Booking.com',  v:{{ booking_pct }},  c:'rgba(192,57,43,0.8)'},
+      {l:'Expedia',      v:{{ expedia_pct }},  c:'rgba(92,156,224,0.8)'},
+      {l:'Airbnb',       v:{{ airbnb_pct }},   c:'rgba(240,165,0,0.8)'},
+      {l:'Corporativo',  v:{{ corp_pct }},     c:'rgba(167,139,250,0.8)'},
+      {l:'Despegar.com', v:{{ despegar_pct }}, c:'rgba(249,115,22,0.8)'},
+    ].filter(function(d){ return d.v > 0; });
+    if (chAll.length === 0) chAll = [{l:'Booking.com',v:100,c:'rgba(192,57,43,0.8)'}];
     mkChart('chart-ch-actual', {type:'doughnut',data:{
-      labels:['Directo','Booking.com','Expedia','Corporativo','Otros'],
-      datasets:[{data:[{{ direct }},{{ booking_pct }},{{ expedia_pct }},{{ corp_pct }},{{ other_ch }}],backgroundColor:['rgba(76,175,120,0.8)','rgba(192,57,43,0.75)','rgba(92,156,224,0.75)','rgba(167,139,250,0.75)','rgba(130,130,130,0.5)'],borderWidth:0,hoverOffset:4}]},
+      labels:chAll.map(function(d){return d.l;}),
+      datasets:[{data:chAll.map(function(d){return d.v;}),backgroundColor:chAll.map(function(d){return d.c;}),borderWidth:0,hoverOffset:4}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
         plugins:{legend:{position:'right',labels:{color:'#c0c8d8',font:{size:10},boxWidth:10,padding:6}},tooltip:co}}
     });
@@ -662,31 +697,53 @@ window.addEventListener('load', function() {
   }, 300);
 });
 
-// ── PDF Export — print window approach (most reliable) ──
+// ── PDF Export — captures charts from canvas then opens print window ──
 function downloadPDF() {
   var btn = document.getElementById('pdf-btn');
   btn.disabled = true;
-  btn.textContent = '⟳ Preparando...';
+  btn.textContent = '⟳ Renderizando gráficas...';
 
-  var html = buildPDFContent();
-  var win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) {
-    alert('Permite ventanas emergentes para descargar el PDF.');
-    btn.disabled = false;
-    btn.textContent = '⬇ Descargar PDF';
-    return;
+  var savedCur = cur;
+  var allSlides = Array.from(slides);
+  var processIdx = 0;
+
+  function renderNextSlide() {
+    if (processIdx >= allSlides.length) {
+      // Restore original slide
+      gotoSlide(savedCur);
+      // Capture all rendered canvases
+      var chartImgs = {};
+      document.querySelectorAll('canvas').forEach(function(c) {
+        if (c.id) { try { chartImgs[c.id] = c.toDataURL('image/png'); } catch(e){} }
+      });
+      btn.textContent = '⟳ Generando PDF...';
+      setTimeout(function() {
+        var html = buildPDFContent(chartImgs);
+        var win = window.open('', '_blank', 'width=960,height=720');
+        if (!win) {
+          alert('Activa ventanas emergentes para descargar el PDF.');
+          btn.disabled = false; btn.textContent = '⬇ Descargar PDF'; return;
+        }
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(function() {
+          win.print();
+          btn.disabled = false; btn.textContent = '⬇ Descargar PDF';
+        }, 1200);
+      }, 100);
+      return;
+    }
+    gotoSlide(processIdx);
+    processIdx++;
+    setTimeout(renderNextSlide, 280);
   }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(function() {
-    win.print();
-    btn.disabled = false;
-    btn.textContent = '⬇ Descargar PDF';
-  }, 800);
+
+  renderNextSlide();
 }
 
-function buildPDFContent() {
+function buildPDFContent(chartImgs) {
+  chartImgs = chartImgs || {};
   // Get sections — fall back to raw response if sections were not parsed
   var rawFull = {{ (analysis.raw_response or '')|tojson }};
 
@@ -775,11 +832,18 @@ function buildPDFContent() {
     + '<div class="pdf-kpi"><div class="pdf-kpi-l">Moneda</div><div class="pdf-kpi-v">' + currency + '</div></div>'
     + '</div>';
 
+  // Map section titles to their chart canvas IDs
+  var sectionCharts = {
+    'III': ['chart-forecast'],
+    'IV':  ['chart-dist','chart-uplift'],
+    'VII': ['chart-ch-actual','chart-nrev'],
+    'X':   ['chart-kpi-rev']
+  };
+
   var body = '';
   sections.forEach(function(s) {
     var title = s[0];
     var raw = s[1] || '— Sección no generada';
-    // Use marked.js if available, otherwise basic conversion
     var htmlContent;
     if (typeof marked !== 'undefined') {
       try { htmlContent = marked.parse(raw); } catch(e) { htmlContent = '<pre>' + raw + '</pre>'; }
@@ -792,8 +856,28 @@ function buildPDFContent() {
         .replace(/^- (.+)$/gm,'<li>$1</li>')
         .replace(/\n/g,'<br>');
     }
+    // Build chart images block for this section
+    var chartHtml = '';
+    for (var prefix in sectionCharts) {
+      if (title.slice(0, prefix.length + 1) === prefix + ' ') {
+        var ids = sectionCharts[prefix];
+        if (ids.length === 1) {
+          var img = chartImgs[ids[0]];
+          if (img) chartHtml = '<div style="margin:10px 0 14px;"><img src="' + img + '" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;border:1px solid #e8e4da;" /></div>';
+        } else {
+          var rowHtml = '';
+          ids.forEach(function(cid) {
+            var img = chartImgs[cid];
+            if (img) rowHtml += '<img src="' + img + '" style="width:48%;max-height:200px;object-fit:contain;border-radius:6px;border:1px solid #e8e4da;" />';
+          });
+          if (rowHtml) chartHtml = '<div style="display:flex;gap:4%;margin:10px 0 14px;align-items:flex-start;">' + rowHtml + '</div>';
+        }
+        break;
+      }
+    }
     body += '<div class="pdf-section">'
       + '<div class="pdf-section-title">' + title + '</div>'
+      + chartHtml
       + '<div class="pdf-text">' + htmlContent + '</div>'
       + '</div>';
   });
